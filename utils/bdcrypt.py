@@ -2,9 +2,16 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives import hashes
 from cryptography.fernet import Fernet
 import base64
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+
+SALT = os.getenv("SALT")
 
 def generate_key(password):
-    salt = b'abby'
+    salt = SALT.encode()
     kdf = PBKDF2HMAC(
         algorithm=hashes.SHA256(),
         length=32,

@@ -1,11 +1,15 @@
 from discord.ext import commands as discord_commands
 from twitchio.ext import commands as twitch_commands
 from utils.log_config import setup_logging, logging
+from dotenv import load_dotenv
+import os
+
 
 setup_logging()
+load_dotenv()
 logger = logging.getLogger(__name__)
 
-OAUTH = "oauth:kpknwsj4bf5xv5oym1t59vcb66cka1"
+OAUTH = os.getenv("TWITCH_OAUTH")  # The Twitch OAuth token from https://twitchapps.com/tmi/ (starts with 'oauth:'
 TWITCH_CHANNEL = "bladedgwario"  # The Twitch channel you want to listen to
 DISCORD_CHANNEL_ID = 1148838747106983996  # Replace with the ID of your Discord channel where you want to relay the messages
 
