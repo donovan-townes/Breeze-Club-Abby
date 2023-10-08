@@ -4,7 +4,7 @@
 
 [![Discord](https://img.shields.io/discord/819650821808273408?color=7289da&logo=discord&logoColor=white)](https://discord.gg/yGsBGQAC49)
 [![Python](https://img.shields.io/badge/python-3.9.1-blue.svg?logo=python&logoColor=white)](https://www.python.org/downloads/release/python-391/)
-[![discord.py](https://img.shields.io/badge/discord.py-1.7.3-blue.svg?logo=discord&logoColor=white)](
+![discord.py](https://img.shields.io/badge/discord.py-1.7.3-blue.svg?logo=discord&logoColor=white)
 
 [Join the Discord Server](https://discord.gg/yGsBGQAC49)
 
@@ -80,18 +80,19 @@ This pulls a random meme from a specified channel (#breeze-memes) and posts it i
 
 Abby's most notable feature is her chatbot. She uses the [OpenAI API](https://openai.com/) to generate responses to messages. She has a few different personas that you can set her to. You can also set her personality strength. The default persona is `bunny` and the default personality strength is 0.5. You start up a conversation with Abby by using a summon word such as `hey abby` or anything that is in the `summon.json` file, She will start interacting with the user and continue to do so until the user dismisses her or a minute passes. The conversation with the user is saved to a database (Mongo Database) and is encrypted. You can clear this database by using the `clear_conv` command. This is useful if the conversation logs are too long.
 
+## Image Generation
+
+Abby has a few image generation commands. These commands utilize the [Stability AI API](https://stability-ai.com/). You can learn more about the API [here](https://stability-ai.com/docs).
 
 ## Other Awesome Features (To be added)
 
 This will be a evolving documentation as the bot is still under development. I will be adding more features as I go along. If you have any suggestions, please post them in the Discord server. If you want to contribute, please contact me on Discord. (I'm `@z8phyr_`)
 
-
 ## Credits
 
-Thanks to brndndiaz for helping me with setting up a lot of the bot's features. You can check out his github [here](github.com/brndndiaz).
+Thanks to brndndiaz for helping me with setting up a lot of the bot's features. You can check out his work [here](https://brndndiaz.dev).
 
 Thanks to the [Breeze Club](https://discord.gg/yGsBGQAC49) members for being awesome and for letting me make this bot for them.
-
 
 ## License
 
