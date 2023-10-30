@@ -72,7 +72,7 @@ class EmojiGame(commands.Cog):
             
             for emoji in emojis:
                 await self.game_message.add_reaction(emoji)
-            self.react_message = await channel.send("React to the correct emoji in the next 30 seconds for bonus EXP!!")
+            self.react_message = await channel.send("React to the correct emoji in the next 30 seconds to be awesome!!!")
 
             # Set a timeout of 30 seconds for the game
             await asyncio.sleep(25)
@@ -87,7 +87,7 @@ class EmojiGame(commands.Cog):
     async def start_game_auto(self):
         logger.info("[🎮] Starting game auto")
         # Function to start the game automatically
-        channel = self.bot.get_channel(self.test_channel)
+        channel = self.bot.get_channel(self.breeze_lounge)
         self.active_exp = True # Activate EXP gain
 
         # Start the game automatically in the specified channel
@@ -126,12 +126,12 @@ class EmojiGame(commands.Cog):
         embed.add_field(name="Correct Emoji", value=self.winner_emoji)
 
         if self.correct_users:
-            embed.add_field(name="Participants who won", value=", ".join(self.correct_users))
+            embed.add_field(name="Participants who won", value=", ".join(user.display_name for user in self.correct_users))
         else:
             embed.add_field(name="Participants who won", value="None.")
 
         if self.incorrect_users:
-            embed.add_field(name="Runner-ups", value=", ".join(self.incorrect_users))
+            embed.add_field(name="Runner-ups", value=", ".join(user.display_name for user in self.incorrect_users))
         else:
             embed.add_field(name="Runner-ups", value="None.")
 
@@ -142,10 +142,10 @@ class EmojiGame(commands.Cog):
         if self.active_exp:
             for user in self.correct_users:
                 user_id = user.id
-                channel = self.bot.get_channel(self.test_channel)
+                channel = self.bot.get_channel(self.breeze_lounge)
                 logger.info(f"User: {user_id} - Channel: {channel}")
-                await channel.send(f"{user_id} wins 10 EXP")
-                # await increment_xp(user, 10) # Increment EXP by 10
+                await channel.send(f"{user.display_name} wins 10 EXP")
+                increment_xp(user_id, 10) # Increment EXP by 10
                 self.active_exp = False
         else:
             pass
@@ -158,26 +158,13 @@ class EmojiGame(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         logger.info("[🎮] Emoji game cog loaded")
-        # self.auto_game.start()
+        self.auto_game.start()
     
     @tasks.loop(hours=24)
     async def auto_game(self):
         logger.info("[🎮] Starting auto game")
         await asyncio.sleep(10) # Wait 10 seconds before starting the game
         await self.start_game_auto()
-
-    # @auto_game.before_loop
-    # async def before_auto_game(self):
-    #     await self.bot.wait_until_ready()
-    #     now = datetime.datetime.now()
-    #     if now.hour < 5:  # if it's before 5AM
-    #         wait_time = 5 - now.hour
-    #     else:  # if it's past 5AM
-    #         wait_time = 24 - (now.hour - 5)
-    #     logger.info([f"[🎮] Emoji Game initialized. Next game in {wait_time} hours."])
-    #     await asyncio.sleep(wait_time * 60 * 60)  # sleep until 5AM
-
-
 
     @commands.Cog.listener()
     async def on_reaction_add(self, reaction, user):
@@ -201,12 +188,12 @@ class EmojiGame(commands.Cog):
                     self.used_reactions.add(user.id)
                     if reaction.emoji == self.winner_emoji:
                         logger.info("[🎮 ] User react was Correct!")
-                        self.correct_users.append(user.display_name) # Change this to user and debug
+                        self.correct_users.append(user) # Change this to user and debug
                         # await message.channel.send(f"Correct! {reaction.emoji} is the winner!", delete_after=5)
                     else:
                         logger.info(" [🎮] User react was Incorrect!")
                         # await message.channel.send(f"Incorrect! {reaction.emoji} is not the correct emoji.", delete_after=5)
-                        self.incorrect_users.append(user.display_name)
+                        self.incorrect_users.append(user)
                 else:
                     logger.info(" [🎮] User has already reacted!")
                     # await message.channel.send("You have already reacted to this row!", delete_after=5)

@@ -94,7 +94,7 @@ class Meme(commands.Cog):
         channel = self.bot.get_channel(int(channel_id))
         # Retrieve the last 200 messages
         messages = []
-        async for msg in channel.history(limit=400):
+        async for msg in channel.history():
             messages.append(msg)
         return messages
 
