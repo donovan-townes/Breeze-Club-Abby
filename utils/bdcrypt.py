@@ -6,8 +6,6 @@ import os
 from dotenv import load_dotenv
 
 load_dotenv()
-
-
 SALT = os.getenv("SALT")
 
 def generate_key(password):

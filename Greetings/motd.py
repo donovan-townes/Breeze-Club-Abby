@@ -38,7 +38,7 @@ class Motd(commands.Cog):
                     {"role": "assistant", "content": "Message of the Day:"},
                 ],
                 max_tokens=300,
-                temperature=0.9,
+                temperature=1.5,
             )
             status_code = response["choices"][0]["finish_reason"]
             assert status_code == "stop", f"The status code was {status_code}."

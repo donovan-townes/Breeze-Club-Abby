@@ -34,7 +34,7 @@ class RandomMessages(commands.Cog):
 
 
     # Task to send random message every 3 hours (if the previous messages aren't sent by the bot)
-    @tasks.loop(hours=6)
+    @tasks.loop(hours=12)
     async def send_random_message(self):
         await self.bot.wait_until_ready()
         logger.info("Checking if we should send a random message")
@@ -87,21 +87,22 @@ class RandomMessages(commands.Cog):
         """
         
         messages = [
-            ("What's a skill or hobby you've always wanted to learn?", 1),
-            ("What's your favorite movie?", 1),
-            ("What's your favorite TV show?", 1),
-            ("What's your favorite video game?", 1),
-            ("What's your favorite book?", 1),
-            ("Tell us your favorite way to relax and unwind", 1),
-            ("Are you a streamer? What do you stream and what time can we tune in to support", 2),
-            ("Share your favorite gaming moment of the week", 1),
-            ("Boost the Server to support our server", 3),
-            ("Subscribe to us on Discord https://discord.com/servers/breeze-club-547471286801268777", 2),
-            ("Ask the members to introduce themself and tell us their favorite music genre!", 3),
-            ("Invite someone new to the Breeze Club! https://discord.gg/yGsBGQAC49", 3),
-            ("Random Bunny Factoid", 4),
+            ("Ever explored a new skill you wanted to master?", 1),
+            ("Tell us about a documentary that changed the way you think.", 1),
+            ("Are there any podcasts you're currently hooked on?", 1),
+            ("Which board game is your all-time favorite?", 1),
+            ("Ever been inspired by a biography or autobiography?", 1),
+            ("What's your favorite way to spend a weekend evening?", 1),
+            ("Content creators, plug your latest! And don't forget to mention your streaming times!", 2),
+            ("Share a memorable moment you had in a game recently.", 1),
+            ("Let's make our community stronger! Consider giving the Server a Boost.", 3),
+            ("Stay connected with us: https://discord.com/servers/breeze-club-547471286801268777", 2),
+            ("Welcome newcomers! What song always gets you on the dance floor?", 3),
+            ("Think Breeze Club is cool? Share the vibe! https://discord.gg/yGsBGQAC49", 3),
+            ("Time for some Fun Facts!", 4),
         ]
-        
+
+
         total_weight = sum(weight for message, weight in messages)
         random_num = random.uniform(0, total_weight)
         cumulative_weight = 0
@@ -138,7 +139,7 @@ class RandomMessages(commands.Cog):
                         {"role": "system", "content": f"Topic: {random_message}"}
                     ],
                     max_tokens=225,
-                    temperature=0.5
+                    temperature=0.6
                 )
 
                 status_code = response["choices"][0]["finish_reason"]
