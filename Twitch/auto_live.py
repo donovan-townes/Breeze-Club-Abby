@@ -12,7 +12,7 @@ import discord
 setup_logging
 logger = logging.getLogger(__name__)
 
-os.chdir('/home/Abby/Discord/')
+os.chdir('/home/Discord')
 load_dotenv()
 
 

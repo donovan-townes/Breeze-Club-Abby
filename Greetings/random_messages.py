@@ -154,5 +154,5 @@ class RandomMessages(commands.Cog):
 
         return "Oops, something went wrong. Please try again later."
 
-async def setup(bot):
-    await bot.add_cog(RandomMessages(bot))
+# async def setup(bot):
+#     await bot.add_cog(RandomMessages(bot))

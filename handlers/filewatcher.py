@@ -9,7 +9,6 @@ from discord.ext import commands,tasks
 import asyncio
 import schedule
 
-
  
 setup_logging()
 logger = logging.getLogger(__name__)

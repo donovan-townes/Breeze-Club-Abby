@@ -55,8 +55,19 @@ class AbbyTasks(commands.Cog):
         self.bot = bot
         self.active_task = False
         self.task_channel = 1103490012500201632 # Abby's Chat
-        self.morning_tasks.cancel()
+        self.start_tasks()
  
+    def cog_unload(self):
+        # This will cancel the task when the cog is unloaded
+        self.morning_tasks.cancel()
+        self.check_task.cancel()
+
+    def start_tasks(self):
+        if not self.morning_tasks.is_running():
+            self.morning_tasks.start()
+        if not self.check_task.is_running():
+            self.check_task.start()
+
     def Abby_Tasks_db(self):
         client = connect_to_mongodb()
         AbbyTasks = client['Abby_Tasks']
@@ -71,18 +82,10 @@ class AbbyTasks(commands.Cog):
             for chunk in chunks:
                 await channel.send(chunk)
 
-    async def setup_hook(self):
-        #Start the task loop
-        self.morning_tasks.start()
-        self.check_task.start()
-        logger.info(f"[🐰] Abby Tasks is ready")
-
-
     @commands.Cog.listener()
     async def on_ready(self):
-        self.check_task.start()
-        self.morning_tasks.start()
-        logger.info(f"[🐰] Abby Tasks is ready")
+        logger.info(f"[🐰] Abby Tasks is ready -> ON_READY")
+
 
 
     @tasks.loop(hours=1) # Check every hour

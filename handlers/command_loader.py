@@ -11,7 +11,7 @@ import time
 import hashlib
 
 
-FOLDER = "/home/Abby/Discord"
+FOLDER = "/home/Discord/"
 
 class CommandHandler(commands.Cog):
     def __init__(self, bot):
@@ -69,7 +69,7 @@ class CommandHandler(commands.Cog):
 
     
     async def load_cog_files(self, loaded_items):
-        main_directory = "/home/Abby/Discord"
+        main_directory = FOLDER
         cogs = []
         for root, dirs, files in os.walk(main_directory):
             if root != main_directory:
@@ -103,7 +103,7 @@ class CommandHandler(commands.Cog):
         loaded_items.append(("🐰", "Cogs", "Loaded", len(cogs)))
 
     async def reload_cogs(self, ctx):
-        main_directory = "/home/Abby/Discord"
+        main_directory = FOLDER
         modified_cogs = []
 
    

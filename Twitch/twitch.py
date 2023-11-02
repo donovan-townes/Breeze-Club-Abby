@@ -9,7 +9,7 @@ setup_logging
 logger = logging.getLogger(__name__)
 
 # Change the current working directory to the Discord directory
-os.chdir('/home/Abby/Discord/')
+# os.chdir('Discord')
 # Load the .env file
 load_dotenv()
 

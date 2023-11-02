@@ -21,7 +21,21 @@ def setup_logging():
     
     # Set up the colored logs
     coloredlogs.install(level='INFO', fmt=log_format, level_styles=level_styles)
+    
 
+    # Get the root logger
+    root_logger = logging.getLogger()
+    # Check if a file handler already exists and add it if not
+    if not any(isinstance(handler, logging.FileHandler) for handler in root_logger.handlers):
+        # Create a file handler and add it to the root logger
+        file_handler = logging.FileHandler('/home/Discord/logs/logfile.log')
+        file_handler.setFormatter(logging.Formatter(log_format))
+        root_logger.addHandler(file_handler)
+
+    # Set the logging level
+    root_logger.setLevel(logging.INFO)
+
+    
 setup_logging()
 logger = logging.getLogger(__name__)
 
