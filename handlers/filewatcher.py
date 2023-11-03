@@ -9,7 +9,7 @@ from discord.ext import commands,tasks
 import asyncio
 import schedule
 
- 
+
 setup_logging()
 logger = logging.getLogger(__name__)
 
@@ -75,7 +75,7 @@ class FileChangeHandler(FileSystemEventHandler):
                 logger.warning(f"[👁‍🗨] Error Loading Modules: {str(e)}")
                 return
 def watch_files(bot):
-    folder_path = "/home/Abby_BreezeClub/Discord/Commands"  # Replace with your desired folder path
+    folder_path = "/home/Discord/Commands"  # Replace with your desired folder path
 
     event_handler = FileChangeHandler(folder_path, bot)
     observer = Observer()
@@ -92,7 +92,7 @@ def watch_files(bot):
 class FileWatcherCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.folder_path = "/home/Abby_BreezeClub/Discord/Commands"  # Replace with your desired folder path
+        self.folder_path = "/home/Discord/Commands"  # Replace with your desired folder path
         self.start_watching()
         
   

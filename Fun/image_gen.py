@@ -91,9 +91,9 @@ class ImageGenerate(commands.Cog):
                 data = await response.json()
 
         for i, image in enumerate(data["artifacts"]):
-            with open(f"/home/Abby/Discord/Images/generate_image.png", "wb") as f:
+            with open(f"/home/Discord/Images/generate_image.png", "wb") as f:
                 f.write(base64.b64decode(image["base64"]))
-        file = discord.File(f"/home/Abby/Discord/Images/generate_image.png")
+        file = discord.File(f"/home/Discord/Images/generate_image.png")
         view = ImageOptions(self, interaction, text, style_preset)
 
         await interaction.followup.send(content=f"Your prompt **{text}**  (Style: {style_preset}) generated this:",file=file, view=view)
@@ -153,10 +153,10 @@ class ImageGenerate(commands.Cog):
 
     
             for i, image in enumerate(data["artifacts"]):
-                with open(f"/home/Abby/Discord/Images/edited_image.png", "wb") as f:
+                with open(f"/home/Discord/Images/edited_image.png", "wb") as f:
                     f.write(base64.b64decode(image["base64"]))
 
-            file = discord.File(f"/home/Abby/Discord/Images/edited_image.png")
+            file = discord.File(f"/home/Discord/Images/edited_image.png")
             view = ImageOptions(self, interaction, text, style_preset)
             
             await interaction.followup.send(content=f"Your image to image with prompt: **{text}** generated this:",file=file, view=view)
@@ -209,10 +209,10 @@ class ImageGenerate(commands.Cog):
 
                     response_content = await response.content.read() # Read the response content as bytes
 
-                    with open(f"/home/Abby/Discord/Images/upscaled_image.png", "wb") as f:
+                    with open(f"/home/Discord/Images/upscaled_image.png", "wb") as f:
                         f.write(response_content)
             
-            file = discord.File(f"/home/Abby/Discord/Images/upscaled_image.png")
+            file = discord.File(f"/home/Discord/Images/upscaled_image.png")
             view = ImageOptions(self, interaction, text, style_preset)
             
             # Disable the Upscale button

@@ -5,6 +5,8 @@ import asyncio
 import random
 import uuid
 import time
+import discord
+
 
 from discord.ext import commands, tasks
 from utils.log_config import setup_logging,logging
@@ -134,6 +136,10 @@ class Chatbot(commands.Cog):
         # Ignore the message if the author is a bot
         if message.author.bot:
             return
+
+        if isinstance(message.channel, discord.DMChannel):
+            return
+
         # If message starts with '!', ignore it
         if message.content.startswith('!'):
             return

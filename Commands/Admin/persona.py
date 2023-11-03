@@ -1,7 +1,7 @@
 import utils.mongo_db as mongo_db
 from utils.log_config import setup_logging, logging
 from discord.ext import commands
-
+import discord
 
 setup_logging
 logger = logging.getLogger(__name__)
@@ -99,10 +99,27 @@ async def persona(message, *args):
         return
 
     persona_name = args[0].lower()
-
+    
     if get_persona_by_name(persona_name) is None:
         await message.channel.send(f"Invalid persona name '{persona_name}'.")
         return
+
+    if persona_name == get_persona()['_id']:
+        await message.channel.send(f"Persona is already set to '{persona_name}'.")
+        return
+    
+    if persona_name == 'bunny':
+        # Update the discord bot nickname and profile picture
+        await message.guild.me.edit(nick="🐰 Abby")
+        with open("/home/Discord/Images/avatar/abby_1.png", "rb") as f:
+            avatar = f.read()
+            await message.bot.user.edit(avatar=avatar)
+    elif persona_name == 'kitten':
+        # Update the discord bot nickname and profile picture
+        await message.guild.me.edit(nick="🐱 Kiki")
+        with open("/home/Discord/Images/avatar/kiki_1.png", "rb") as f:
+            avatar = f.read()
+            await message.bot.user.edit(avatar=avatar)
 
     update_persona(persona_name)
     await message.channel.send(f"Persona has been updated to '{persona_name}'.")

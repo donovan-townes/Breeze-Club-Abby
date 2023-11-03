@@ -50,7 +50,6 @@ class Twitch(commands.Cog):
         self.user_handles = fetch_users_with_twitch_handles()
         self.live_messages = {}
         self.is_live_prev = {}
-        
 
     def get_oauth_token(self):
         client_id=os.getenv('TWITCH_CLIENT_ID')
@@ -64,10 +63,18 @@ class Twitch(commands.Cog):
         response = requests.post(url, params=payload)
         return response.json()['access_token']
 
+    def cog_unload(self):
+        self.check_live_twitch.cancel()
+
+    async def load_tasks(self):
+        if not self.check_live_twitch.is_running():
+            await self.check_live_twitch.start(self.bot)
+
     @commands.Cog.listener()
     async def on_ready(self):
         logger.info(f"[🎥] Starting Twitch Live Scheduler")
-        await self.check_live_twitch.start(self.bot)
+        await self.load_tasks()
+        
 
     @commands.command(name='livedatabase', help='Lists all users with a valid Twitch handle in the database.')
     async def live_database(self, ctx):
