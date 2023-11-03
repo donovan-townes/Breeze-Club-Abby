@@ -77,6 +77,10 @@ class Giveaway(commands.Cog):
         self.bot = bot
         self.giveaway_task = None
 
+    def cog_unload(self):
+        self.hourly_giveaway_check.cancel()
+        
+
     # Giveaway Embed
     async def giveaway_embed(self,channel,emoji,prize,duration):
         
@@ -264,7 +268,8 @@ class Giveaway(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        self.hourly_giveaway_check.start()
+        if not self.hourly_giveaway_check.is_running():
+            self.hourly_giveaway_check.start()
 
     # Schedule the Giveaway Check (Every Hour)
     @tasks.loop(hours=1)

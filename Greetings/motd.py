@@ -50,7 +50,8 @@ class Motd(commands.Cog):
         
     @commands.Cog.listener()
     async def on_ready(self):
-        self.motd_task.start()
+        if not self.motd_task.is_running():
+            self.motd_task.start()
 
     @tasks.loop(hours=24)
     

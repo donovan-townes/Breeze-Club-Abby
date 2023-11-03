@@ -158,7 +158,9 @@ class EmojiGame(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         logger.info("[🎮] Emoji game cog loaded")
-        self.auto_game.start()
+        if not self.auto_game.is_running():
+            logger.info("[🎮] Starting auto game loop")
+            self.auto_game.start()
     
     @tasks.loop(hours=24)
     async def auto_game(self):

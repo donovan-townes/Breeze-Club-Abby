@@ -30,9 +30,11 @@ class ExperienceGainManager(commands.Cog):
         logger.info(f"[💰] Experience Gain Manager ready")
         self.run_tasks()
 
-    def run_tasks(self):    
-        self.daily_task.start()
-        self.check_streaming.start()
+    def run_tasks(self):
+        if not self.daily_task.is_running():    
+            self.daily_task.start()
+        if not self.check_streaming.is_running():
+            self.check_streaming.start()
         logger.info(f"[💰] Experence Tasks Started")   
 
 
