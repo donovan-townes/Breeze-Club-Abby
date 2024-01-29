@@ -26,6 +26,17 @@ class EmojiGame(commands.Cog):
         self.breeze_lounge = 802512963519905852
         self.guild_id = 547471286801268777
         self.active_exp = False
+        self.start_tasks()
+
+    def cog_unload(self):
+        self.auto_game.cancel()
+    
+    def start_tasks(self):
+        if not self.auto_game.is_running():
+            logger.info("[🎮] Starting auto game loop")
+            self.auto_game.start()
+
+
 
     def emoji_conifgs(self):
         self.custom_emojis = {
@@ -35,7 +46,6 @@ class EmojiGame(commands.Cog):
             "emoji4": "🍀",
             # Add more custom emojis as needed
         }
-
 
     def create_row(self):
         emojis = random.sample(list(self.custom_emojis.values()), self.grid_size)
@@ -99,12 +109,14 @@ class EmojiGame(commands.Cog):
         self.game_message = await channel.send("".join(":black_large_square:" for _ in range(self.grid_size)))
         for emoji in emojis:
             await self.game_message.add_reaction(emoji)
-        self.react_message = await channel.send("React to the correct emoji in the next 30 seconds for bonus EXP!!")
+        self.react_message = await channel.send("React to the correct emoji in the next 1 minute for bonus EXP!!")
 
         # Set a timeout of 30 seconds for the game
-        await asyncio.sleep(25)
+        await asyncio.sleep(30)
         # When 5 seconds are left, send a warning message
         if self.active_game:
+            await channel.send("30 seconds left!", delete_after=5)
+            await asyncio.sleep(25)
             await channel.send("5 seconds left!", delete_after=5)
             await asyncio.sleep(5)
         await self.end_game(channel)
@@ -158,15 +170,34 @@ class EmojiGame(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         logger.info("[🎮] Emoji game cog loaded")
-        if not self.auto_game.is_running():
-            logger.info("[🎮] Starting auto game loop")
-            self.auto_game.start()
     
     @tasks.loop(hours=24)
     async def auto_game(self):
         logger.info("[🎮] Starting auto game")
         await asyncio.sleep(10) # Wait 10 seconds before starting the game
         await self.start_game_auto()
+
+    @auto_game.before_loop
+    async def before_auto_game(self):
+        await self.bot.wait_until_ready()
+        logger.info("[🎮] Auto game loop ready")
+
+        now = datetime.datetime.now()
+        
+        #Calculate the time for the next 8 AM
+        tomorrow = now + datetime.timedelta(days=1)
+        tomorrow = tomorrow.replace(hour=8, minute=0, second=0, microsecond=0)
+
+        # If it's already past 8 AM, set the next 8 AM to be tomorrow
+        if now.hour >= 8:
+            tomorrow = now + datetime.timedelta(days=1)
+            tomorrow = tomorrow.replace(hour=8, minute=0, second=0)
+        
+        time_until_8_am = (tomorrow - now).total_seconds()
+
+        logger.info(f"Sleeping until {tomorrow}")
+        await asyncio.sleep(time_until_8_am)
+
 
     @commands.Cog.listener()
     async def on_reaction_add(self, reaction, user):
@@ -204,5 +235,5 @@ class EmojiGame(commands.Cog):
   
 
 
-# async def setup(bot):
-#     await bot.add_cog(EmojiGame(bot))
+async def setup(bot):
+    await bot.add_cog(EmojiGame(bot))

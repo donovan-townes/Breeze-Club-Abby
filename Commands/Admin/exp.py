@@ -82,7 +82,7 @@ async def add(message, points: int, user: discord.Member = None):
         user = message.author
 
     increment_xp(user.id, points)
-    await message.send(f"You've incremented your xp by {points} for {user.mention}")
+    await message.send(f"You've incremented xp by {points} for {user.mention}")
 
 @commands.has_permissions(administrator=True)
 @exp.command()

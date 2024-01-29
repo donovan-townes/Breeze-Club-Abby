@@ -106,11 +106,11 @@ class UrlHandler(commands.Cog):
             self.logger.info(f"[🔗] URL is of type {url_type}")
             if url_type == 'youtube':
                 self.logger.info("[🔗] Handling the YouTube Link")
-                video_id = self.get_youtube_video_id(url)
-                self.logger.info(video_id)
-                if video_id is not None:
-                    self.add_youtube_url_to_db(user_id, url, self.api_key)
-                    self.logger.info(f"[🔗] URL has been added to the database")
+                # video_id = self.get_youtube_video_id(url)
+                # self.logger.info(video_id)
+                # if video_id is not None:
+                #     self.add_youtube_url_to_db(user_id, url, self.api_key)
+                #     self.logger.info(f"[🔗] URL has been added to the database")
             elif url_type == 'twitch':
                 self.logger.info("[🔗] Handling the Twitch Link")
                 clip_id = self.get_twitch_clip_id(url)

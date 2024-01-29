@@ -80,7 +80,7 @@ def get_all_personas():
     # Fetch all the personas from MongoDB
     return list(collection.find())
 
-
+@commands.has_permissions(administrator=True)
 @commands.command()
 async def persona(message, *args):
     if len(args) == 0:
@@ -118,6 +118,12 @@ async def persona(message, *args):
         # Update the discord bot nickname and profile picture
         await message.guild.me.edit(nick="🐱 Kiki")
         with open("/home/Discord/Images/avatar/kiki_1.png", "rb") as f:
+            avatar = f.read()
+            await message.bot.user.edit(avatar=avatar)
+    elif persona_name == 'fox':
+        # Update the discord bot nickname and profile picture
+        await message.guild.me.edit(nick="🦊 Felix")
+        with open("/home/Discord/Images/avatar/felix_1.png", "rb") as f:
             avatar = f.read()
             await message.bot.user.edit(avatar=avatar)
 

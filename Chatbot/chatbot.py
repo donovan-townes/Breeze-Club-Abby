@@ -62,7 +62,7 @@ class Chatbot(commands.Cog):
             f"{ABBY_RUN} Hello {name}! {random.choice(bunny_words)} Wishing you a fantastic day!",
             f"{ABBY_IDLE} Greetings {name}! {random.choice(bunny_words)} Sending you positive vibes!",
             f"{ABBY_JUMP} Hey there {name}! {random.choice(bunny_words)}",
-            f"{ABBY_IDLE} {name}! {random.choice(bunny_words)} Feel the breeze and let it fill you with tranquility!",
+            f"{ABBY_IDLE} {name}! {random.choice(bunny_words)} Feel the breeze - let it fill you with tranquility!",
             f"{ABBY_JUMP} Hey {name}! {random.choice(bunny_words)}",
             f"{ABBY_JUMP} Hello {name}! {random.choice(bunny_words)} I'm here to help you with anything you need!",
         ]

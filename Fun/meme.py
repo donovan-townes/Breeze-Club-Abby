@@ -95,7 +95,8 @@ class Meme(commands.Cog):
         # Retrieve the last 200 messages
         messages = []
         async for msg in channel.history():
-            messages.append(msg)
+                if msg.attachments and any(attachment.content_type.startswith(('image/', 'video/')) for attachment in msg.attachments):
+                    messages.append(msg)
         return messages
 
     @commands.Cog.listener()

@@ -111,7 +111,7 @@ class Twitch(commands.Cog):
     @tasks.loop(minutes=15)
     async def check_live_twitch(self, bot):
         try:
-            logger.info(" [🎥] Checking for USERS Live on Twitch!")
+            # logger.info(" [🎥] Checking for USERS Live on Twitch!")
             for discord_id, twitch_handle in self.user_handles.items():
                 is_live = is_user_live(twitch_handle, self.get_oauth_token())
 
