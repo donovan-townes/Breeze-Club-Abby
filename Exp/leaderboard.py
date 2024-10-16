@@ -45,7 +45,7 @@ class Leaderboard(commands.Cog):
         leaderboard_embed = discord.Embed(
             title="🏆 Breeze Club Experience Leaderboard 🏆" ,
             description="Here's how our members stack up in terms of experience!",
-            color=discord.Color.gold()  # Gold color for a leaderboard theme
+            color=discord.Color.green()  # Gold color for a leaderboard theme
         )
         
         # Add the server's logo as a thumbnail (replace 'URL' with the actual logo URL)

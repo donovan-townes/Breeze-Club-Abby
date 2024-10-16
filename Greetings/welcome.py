@@ -59,12 +59,15 @@ class Welcome(commands.Cog):
 
     # GPT Call
     def generate_message(self, prompt):
-        response = openai.Completion.create(
-            engine="text-davinci-003",
-            prompt=prompt,
-            max_tokens=200
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": f"{prompt}"},
+            ],
+            max_tokens=300
         )
-        return response.choices[0].text.strip()
+        return response.choices[0].message['content']
+    
 
     @commands.Cog.listener()
     async def on_ready(self):

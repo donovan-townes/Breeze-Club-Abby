@@ -18,6 +18,7 @@ load_dotenv()
 
 TEST_CHANNEL = 1103490012500201632
 BREEZE_TV = 1131791657810022510
+Z8PHYR_FAM = 807678887777140786
 
 def fetch_users_with_twitch_handles():
     user_handles = {}
@@ -95,7 +96,12 @@ class Twitch(commands.Cog):
 
     async def send_live_notification(self, bot, twitch_handle):
         channel = bot.get_channel(self.CHANNEL_ID)
-        message = await channel.send(f"{twitch_handle} has just gone live! Let's tune in and support at https://twitch.tv/{twitch_handle}")
+
+        if twitch_handle == 'z8phyr':
+            #Tag Z8PHYR_FAM
+            message = await channel.send(f"<@&{Z8PHYR_FAM}> {twitch_handle} has just gone live! Let's tune in and support at https://twitch.tv/{twitch_handle}")
+        else:
+            message = await channel.send(f"{twitch_handle} has just gone live! Let's tune in and support at https://twitch.tv/{twitch_handle}")
         self.live_messages[twitch_handle] = message
 
     async def delete_live_notification(self, twitch_handle):

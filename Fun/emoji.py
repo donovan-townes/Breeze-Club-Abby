@@ -36,8 +36,6 @@ class EmojiGame(commands.Cog):
             logger.info("[🎮] Starting auto game loop")
             self.auto_game.start()
 
-
-
     def emoji_conifgs(self):
         self.custom_emojis = {
             "emoji1": "❤️",
@@ -233,7 +231,5 @@ class EmojiGame(commands.Cog):
         except Exception as e:
             logger.info("Error:", e)
   
-
-
 async def setup(bot):
     await bot.add_cog(EmojiGame(bot))

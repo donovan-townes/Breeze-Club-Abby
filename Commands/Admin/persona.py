@@ -111,7 +111,7 @@ async def persona(message, *args):
     if persona_name == 'bunny':
         # Update the discord bot nickname and profile picture
         await message.guild.me.edit(nick="🐰 Abby")
-        with open("/home/Discord/Images/avatar/abby_1.png", "rb") as f:
+        with open("/home/Discord/Images/avatar/abby_idle1.gif", "rb") as f:
             avatar = f.read()
             await message.bot.user.edit(avatar=avatar)
     elif persona_name == 'kitten':
