@@ -287,7 +287,7 @@ async def upscale(ctx):
             await processing.edit(error_message)
 
 
-def setup(bot):
-    bot.add_command(imagine)
-    bot.add_command(imgimg)
-    bot.add_command(upscale)
+# def setup(bot):
+#     bot.add_command(imagine)
+#     bot.add_command(imgimg)
+#     bot.add_command(upscale)

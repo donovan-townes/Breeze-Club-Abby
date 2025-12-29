@@ -140,5 +140,5 @@ class CommandHandler(commands.Cog):
         print(tabulate(modified_cogs, headers=headers, tablefmt="simple_outline"))
 
         # Notify the command invoker about the reloaded cogs
-        await ctx.send(f'Reloaded {len(modified_cogs)} cogs. !!!!')
+        await ctx.send(f'Reloaded {len(modified_cogs)} cogs.')
 

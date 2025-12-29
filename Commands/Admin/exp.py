@@ -68,7 +68,6 @@ async def exp(message):
     await message.send(embed=embed)
   
 
-
 @exp.command()
 @commands.has_permissions(administrator=True)
 async def init_xp_all(ctx):
@@ -80,9 +79,12 @@ async def init_xp_all(ctx):
 async def add(message, points: int, user: discord.Member = None):
     if user is None:
         user = message.author
+    try:
+        increment_xp(user.id, points)
+    except Exception as e:
+        await message.send(f"Sorry, there's an error here: {e}")
 
-    increment_xp(user.id, points)
-    await message.send(f"You've incremented xp by {points} for {user.mention}")
+    await message.send(f"You've incremented experience by {points} for {user.mention}!")
 
 @commands.has_permissions(administrator=True)
 @exp.command()
@@ -112,7 +114,29 @@ async def level(message):
 async def exp_error(ctx, error):
     if isinstance(error, commands.CommandOnCooldown):
         await ctx.send(f'Cooldown still active, please wait {error.retry_after:.0f} seconds.')
+    elif isinstance(error, commands.BadArgument):
+        await ctx.send(f"An error happened with exp: {error}")
+    else:
+        await ctx.send(f"An error happened that I'm not sure why: {error}")
 
+@add.error
+async def add_error(ctx, error):
+    if isinstance(error, commands.BadArgument):
+        await ctx.send(f"An error happened: {error}")
+    else:
+        await ctx.send(f"Something kinda went wrong here: {error}")
+
+exp.description = """
+**Usages** `!exp` 
+
+Shows your current exp in the Breeze Club.
+
+`!exp level` 
+Shows your current level in the Breeze Club.
+
+**[Admin Usage]** `!exp add | sub <points> <@user>` | `!exp reset <user> (if no user is specified it will reset the user who called it)` | `
+
+"""
 
 def setup(bot):
     bot.add_command(exp)

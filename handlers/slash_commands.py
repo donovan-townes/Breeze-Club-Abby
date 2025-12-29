@@ -51,9 +51,6 @@ class SlashCommands(commands.Cog):
     async def reload(self,ctx):
         await ctx.send("Reloading cogs...")
         await self.commander.reload_cogs(ctx=ctx)
-        await ctx.send("Reloaded coggers!")
-
-
 
 async def setup(bot : commands.Bot) -> None:
     await bot.add_cog(SlashCommands(bot))

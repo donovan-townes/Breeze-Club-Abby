@@ -137,8 +137,8 @@ class Twitch(commands.Cog):
         except Exception as e:
             logger.error(f"Unexpected error during check_live_twitch loop: {e}")
 
-async def setup(bot):
-    await bot.add_cog(Twitch(bot))
+# async def setup(bot):
+#     await bot.add_cog(Twitch(bot))
 
 
 

@@ -49,12 +49,17 @@ def increment_xp(user_id, increment):
     if not exp_data:
         initialize_xp(user_id)
         exp_data = {"points": 0}
-
-    new_xp = exp_data["points"] + increment
-    exp.update_one({}, {"$set": {"points": new_xp}})
-    logger.info(f"[💰] User: {user_id} New EXP is {new_xp}")
-    leveled_up = check_thresholds(user_id, new_xp)
-    return leveled_up
+    
+    try:
+        new_xp = exp_data["points"] + increment
+        exp.update_one({}, {"$set": {"points": new_xp}})
+        logger.info(f"[💰] User: {user_id} New EXP is {new_xp}")
+        leveled_up = check_thresholds(user_id, new_xp)
+        return leveled_up
+    
+    except Exception as e:
+        logger.error(f"Error occured during increment:", e)
+        raise Exception
 
 
 def decrement_xp(user_id, increment):
