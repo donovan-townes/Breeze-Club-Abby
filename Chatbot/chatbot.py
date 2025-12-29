@@ -7,6 +7,7 @@ import time
 import discord
 import sys
 from pathlib import Path
+import os
 
 from discord.ext import commands, tasks
 
@@ -16,6 +17,11 @@ from utils.mongo_db import (
     create_session, append_session_message, close_session, 
     get_sessions_collection, get_tenant_id, upsert_user
 )
+# Optional RAG integration
+try:
+    from rag import rag_handler
+except ImportError:
+    rag_handler = None
 from utils.log_config import setup_logging,logging
 
 setup_logging()
@@ -51,6 +57,7 @@ class Chatbot(commands.Cog):
         self.chat_mode = {}         # Track the state of each user's chat.The key is the user_id and the value is either 'normal' or 'code'
         self.user_channel = {}      # Track the channel of each user's chat The key is the user_id and the value is the channel object
         self.active_instances = []  # Track the active instances of the chatbot
+        self.rag_enabled = os.getenv("RAG_CONTEXT_ENABLED", "false").lower() == "true"
         logger.info(f"[💭] Chatbot initialized with tenant_id: {get_tenant_id()}")
 
 
@@ -107,10 +114,23 @@ class Chatbot(commands.Cog):
     
     def user_chat_mode(self,user_id,chat_mode,chat_history,user_input):
         logger.info(f"[💭] Chat Mode for {user_id} is {chat_mode.get(user_id)}")
+        content = user_input.content
+
+        # Optional RAG context injection
+        if self.rag_enabled and rag_handler:
+            try:
+                rag_result = rag_handler.query(content, top_k=3)
+                contexts = [item.get("text", "") for item in rag_result.get("results", [])]
+                if contexts:
+                    context_block = "\n".join([f"[RAG] {c}" for c in contexts])
+                    content = f"Context:\n{context_block}\n\nUser: {content}"
+            except Exception as exc:
+                logger.warning(f"[RAG] Context fetch failed: {exc}")
+
         if chat_mode.get(user_id) == "code":
-            response = chat_openai.chat_gpt4(user_input.content, user_id, chat_history=chat_history)
+            response = chat_openai.chat_gpt4(content, user_id, chat_history=chat_history)
         else:
-            response = chat_openai.chat(user_input.content, user_id, chat_history=chat_history)
+            response = chat_openai.chat(content, user_id, chat_history=chat_history)
         return response
 
     def user_update_chat_history(self,user_id,session_id, chat_history,user_input,response):
@@ -164,6 +184,17 @@ class Chatbot(commands.Cog):
         # If message starts with '!', ignore it
         if message.content.startswith('!'):
             return
+
+        # Lightweight toggle for RAG context (global toggle)
+        if message.content.lower().strip() == "rag on":
+            self.rag_enabled = True
+            await message.channel.send("RAG context enabled for chatbot.")
+            return
+        if message.content.lower().strip() == "rag off":
+            self.rag_enabled = False
+            await message.channel.send("RAG context disabled for chatbot.")
+            return
+
         await self.handle_chatbot(self.bot, message)
 
     async def handle_conversation(self,client, message, user_id, session_id, chat_history, chat_mode):
