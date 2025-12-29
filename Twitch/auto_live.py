@@ -12,13 +12,12 @@ import discord
 setup_logging
 logger = logging.getLogger(__name__)
 
-os.chdir('/home/Discord')
 load_dotenv()
 
 
-TEST_CHANNEL = 1103490012500201632
-BREEZE_TV = 1131791657810022510
-Z8PHYR_FAM = 807678887777140786
+TEST_CHANNEL = int(os.getenv('TWITCH_TEST_CHANNEL_ID', '0')) or None
+BREEZE_TV = int(os.getenv('TWITCH_NOTIFY_CHANNEL_ID', '0')) or None
+Z8PHYR_FAM = int(os.getenv('TWITCH_ROLE_Z8PHYR_FAM', '0')) or None
 
 def fetch_users_with_twitch_handles():
     user_handles = {}
@@ -114,7 +113,7 @@ class Twitch(commands.Cog):
                 if twitch_handle in self.live_messages:
                     del self.live_messages[twitch_handle]
 
-    @tasks.loop(minutes=15)
+    @tasks.loop(minutes=int(os.getenv('TWITCH_POLL_MINUTES', '15')))
     async def check_live_twitch(self, bot):
         try:
             # logger.info(" [🎥] Checking for USERS Live on Twitch!")

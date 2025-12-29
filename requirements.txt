@@ -86,3 +86,8 @@ watchdog==3.0.0
 webcolors==1.11.1
 Werkzeug==3.0.1
 yarl==1.9.2
+
+# RAG / Qdrant stack
+qdrant-client==1.8.2
+chromadb==0.5.5
+sentence-transformers==2.7.0

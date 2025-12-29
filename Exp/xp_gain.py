@@ -1,15 +1,18 @@
 import datetime
+import os
+from dotenv import load_dotenv
 from Exp.xp_handler import increment_xp
 from utils.log_config import setup_logging, logging
 import asyncio
 from discord.ext import tasks,commands
 
 
+load_dotenv()
 setup_logging()
 logger = logging.getLogger(__name__)
 
-ABBY_CHAT = 1103490012500201632
-BREEZE_LOUNGE = 802512963519905852
+ABBY_CHAT = int(os.getenv("XP_ABBY_CHAT_ID", "0")) or None
+BREEZE_LOUNGE = int(os.getenv("XP_CHANNEL_ID", "0")) or None
 
 class ExperienceGainManager(commands.Cog):
     def __init__(self, bot):
@@ -64,7 +67,7 @@ class ExperienceGainManager(commands.Cog):
         except AttributeError:
             logger.warning(f"[💰] Attribute 'self_stream' not found in VoiceState object for {member}")
    
-    @tasks.loop(minutes=5)
+    @tasks.loop(minutes=int(os.getenv("XP_STREAM_INTERVAL_MINUTES", "5")))
     async def check_streaming(self):
         # logger.info(f"[💰] Checking streaming users")
         for user_id in self.streaming_users:
@@ -119,11 +122,12 @@ class ExperienceGainManager(commands.Cog):
         if message.author.bot:
             return
         
-        if not message.content.startswith('!') and message.channel.id == BREEZE_LOUNGE:
+        if BREEZE_LOUNGE and (not message.content.startswith('!')) and message.channel.id == BREEZE_LOUNGE:
             # logger.info("[💰] USER typed in correct channel")
             # Check if the user has sent a message in the last minute
             last_message_time = self.last_message_time.get(user_id)
-            if not last_message_time or (now - last_message_time).total_seconds() >= 60:
+            msg_cooldown = int(os.getenv("XP_MESSAGE_COOLDOWN_SECONDS", "60"))
+            if not last_message_time or (now - last_message_time).total_seconds() >= msg_cooldown:
                 # Update the last message time and increment the user's experience
                 self.last_message_time[user_id] = now
                 
@@ -174,7 +178,8 @@ class ExperienceGainManager(commands.Cog):
         # Check for attachments independently of messages
         last_attachment_time = self.last_attachment_time.get(user_id)
         for attachment in message.attachments:
-            if not last_attachment_time or (now - last_attachment_time).total_seconds() >= 10 * 60:
+            att_cooldown = int(os.getenv("XP_ATTACHMENT_COOLDOWN_SECONDS", "600"))
+            if not last_attachment_time or (now - last_attachment_time).total_seconds() >= att_cooldown:
                 # Check if the attachment is an MP3 file
                 if attachment.content_type == 'audio/mpeg':
                     logger.info("[💰] User sent an MP3 file")
