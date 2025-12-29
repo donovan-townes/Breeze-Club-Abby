@@ -2,81 +2,82 @@
 from pymongo import MongoClient
 import discord
 from discord.ext import commands
-from utils.mongo_db import connect_to_mongodb
+import sys
+from pathlib import Path
+
+# Import unified MongoDB client
+sys.path.insert(0, str(Path(__file__).parent.parent / 'abby-core'))
+from utils.mongo_db import get_xp, add_xp, get_tenant_id, get_xp_collection
 from utils.log_config import setup_logging, logging
 
 setup_logging()
 logger = logging.getLogger(__name__)
 
 
-# Assuming you already have a MongoClient instance.
-client = connect_to_mongodb()
-
-def get_user_exp(user_id):
-    db = client[f"User_{user_id}"]
-    return db["EXP"]
+# XP helper functions using unified MongoDB client with tenant scoping
+# NOTE: get_user_exp() is replaced by get_xp() from unified client
 
 def initialize_xp(user_id):
-    exp = get_user_exp(user_id)
-    # Initialize with 0 points. Add other fields as needed.
-    exp.insert_one({"points": 0, "level": 1})
+    user_id = str(user_id)
+    logger.info(f"[XP] Initializing XP for user {user_id} with tenant_id: {get_tenant_id()}")
+    # Use unified client to ensure user has XP entry (will create with defaults if not exists)
+    add_xp(user_id, 0, "initialization")
 
 def get_user_level(user_id):
-    exp = get_user_exp(user_id)
-    user_data = exp.find_one({})
+    user_data = get_xp(user_id)
     if not user_data or 'level' not in user_data:
         # If the user does not exist or does not have a level field, return a default value
         return 1
     return user_data["level"]
 
 def reset_exp(user_id):
-    exp = get_user_exp(user_id)
-
-    exp_data = exp.find_one({})
-    if not exp_data:
+    user_id = str(user_id)
+    user_data = get_xp(user_id)
+    if not user_data:
         # If there is no experience data for this user, initialize it
         initialize_xp(user_id)
     else:
         # If experience data exists, reset points to zero
-        exp.update_one({}, {"$set": {"level": 1, "points": 0}})
-        logger.info(
-            f"[💰] Level & Experience points RESET for user {user_id}.")
+        xp_collection = get_xp_collection()
+        xp_collection.update_one(
+            {"tenant_id": get_tenant_id(), "user_id": user_id}, 
+            {"$set": {"level": 1, "points": 0}}
+        )
+        logger.info(f"[💰] Level & Experience points RESET for user {user_id}.")
 
 
 def increment_xp(user_id, increment):
-    exp = get_user_exp(user_id)
-    exp_data = exp.find_one({})
-    if not exp_data:
+    user_id = str(user_id)
+    user_data = get_xp(user_id)
+    if not user_data:
         initialize_xp(user_id)
-        exp_data = {"points": 0}
+        user_data = get_xp(user_id)
     
-    try:
-        new_xp = exp_data["points"] + increment
-        exp.update_one({}, {"$set": {"points": new_xp}})
-        logger.info(f"[💰] User: {user_id} New EXP is {new_xp}")
-        leveled_up = check_thresholds(user_id, new_xp)
-        return leveled_up
+    # Add XP using unified client
+    add_xp(user_id, increment, "message")
     
-    except Exception as e:
-        logger.error(f"Error occured during increment:", e)
-        raise Exception
+    # Get updated data to check for level up
+    updated_data = get_xp(user_id)
+    new_xp = updated_data.get("points", 0)
+    
+    return check_thresholds(user_id, new_xp)
 
 
 def decrement_xp(user_id, increment):
-    exp = get_user_exp(user_id)
-
-    exp_data = exp.find_one({})
-    if not exp_data:
+    user_id = str(user_id)
+    user_data = get_xp(user_id)
+    if not user_data:
         initialize_xp(user_id)
-        exp_data = {"points": 0}
+        user_data = get_xp(user_id)
 
-    new_xp = exp_data["points"] - increment
-    if new_xp < 0:  # if new XP is below zero, set it to zero
-        new_xp = 0
+    current_points = user_data.get("points", 0)
+    decrement_amount = -abs(increment)  # Ensure negative
+    new_xp = max(0, current_points + decrement_amount)  # Prevent negative XP
+    
+    # Update using unified client
+    add_xp(user_id, decrement_amount, "penalty")
+    logger.info(f"[💰] User: {user_id} XP decremented to {new_xp}")
 
-    exp.update_one({}, {"$set": {"points": new_xp}})
-    logger.info(f"[💰] User: {user_id} New EXP is {new_xp}")
-    check_thresholds(user_id, new_xp)
 
 def get_level_from_xp(xp):
     # Calculate level from xp
@@ -85,44 +86,48 @@ def get_level_from_xp(xp):
     level = int((xp / base_xp) ** (1 / factor))
     return level
 
-def get_xp(user_id):
-    exp = get_user_exp(user_id)
 
-    exp_data = exp.find_one({})
-    if not exp_data:
+# Legacy function kept for backward compatibility - renamed to avoid conflict with unified client
+def get_xp_points(user_id):
+    """Get user's XP points (legacy wrapper)"""
+    user_id = str(user_id)
+    user_data = get_xp(user_id)
+    if not user_data:
         initialize_xp(user_id)
         return 0
-
-    return exp_data["points"]
+    return user_data.get("points", 0)
 
 
 def update_old_users():
-    all_databases = client.list_database_names()
-    user_databases = [db for db in all_databases if db.startswith("User_")]
-
-    for user_db in user_databases:
-        db = client[user_db]
-        exp = db["EXP"]
-
-        user_data = exp.find_one({})
-        if 'level' not in user_data:
-            exp.update_one({}, {"$set": {"level": 1}})
+    """DEPRECATED: This function is for legacy per-user databases only.
+    After migration to unified schema, this function is no longer needed."""
+    logger.warning("[XP] update_old_users() called but is deprecated - unified schema doesn't need this")
 
 
 def check_thresholds(user_id, new_xp):
-    exp = get_user_exp(user_id)
-    user_data = exp.find_one({})
-    if 'level' not in user_data:
-        exp.update_one({}, {"$set": {"level": 1}})
-        user_data = exp.find_one({})
+    user_id = str(user_id)
+    user_data = get_xp(user_id)
+    if not user_data or 'level' not in user_data:
+        # Initialize with default level
+        xp_collection = get_xp_collection()
+        xp_collection.update_one(
+            {"tenant_id": get_tenant_id(), "user_id": user_id},
+            {"$set": {"level": 1}},
+            upsert=True
+        )
+        user_data = get_xp(user_id)
 
-    current_level = user_data["level"]
+    current_level = user_data.get("level", 1)
 
     # Calculate the new level based on the new_xp using the get_level_from_xp function
     new_level = get_level_from_xp(new_xp)
 
     if new_level > current_level:
-        exp.update_one({}, {"$set": {"level": new_level}})
+        xp_collection = get_xp_collection()
+        xp_collection.update_one(
+            {"tenant_id": get_tenant_id(), "user_id": user_id},
+            {"$set": {"level": new_level}}
+        )
         logger.info(f"[💰] User {user_id} leveled up to level {new_level}!")
         return True  # Indicate that the user leveled up
 
@@ -148,27 +153,19 @@ def get_xp_required(level):
 def fetch_all_users_exp():
     """
     Fetches the experience points of all users from the MongoDB database.
-    
-    Args:
-    - client (MongoClient): The MongoDB client instance.
+    Uses unified tenant-scoped schema.
     
     Returns:
     - dict: A dictionary with user IDs as keys and experience points as values.
     """
-    client = connect_to_mongodb()
-    all_databases = client.list_database_names()
-    user_databases = [db for db in all_databases if db.startswith("User_")]
-
+    xp_collection = get_xp_collection()
+    tenant_id = get_tenant_id()
+    
     exp_data = {}
-    for user_db in user_databases:
-        user_id = int(user_db.split("_")[1])  # Extract user ID from database name
-        db = client[user_db]
-        exp_collection = db["EXP"]
-        
-        user_exp_data = exp_collection.find_one({})
-        if user_exp_data and "points" in user_exp_data:
-            exp_data[user_id] = user_exp_data["points"]
+    # Query all XP records for current tenant
+    for user_xp_data in xp_collection.find({"tenant_id": tenant_id}):
+        user_id = int(user_xp_data["user_id"])
+        if "points" in user_xp_data:
+            exp_data[user_id] = user_xp_data["points"]
 
     return exp_data
-
-# This function can be added to xp_handler.py or wherever you manage the database logic.

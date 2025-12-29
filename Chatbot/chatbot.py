@@ -1,14 +1,21 @@
 import json
 import utils.chat_openai as chat_openai
-import utils.mongo_db as mongo_db
 import asyncio
 import random
 import uuid
 import time
 import discord
-
+import sys
+from pathlib import Path
 
 from discord.ext import commands, tasks
+
+# Import unified MongoDB client for session management
+sys.path.insert(0, str(Path(__file__).parent.parent / 'abby-core'))
+from utils.mongo_db import (
+    create_session, append_session_message, close_session, 
+    get_sessions_collection, get_tenant_id, upsert_user
+)
 from utils.log_config import setup_logging,logging
 
 setup_logging()
@@ -38,12 +45,13 @@ class Chatbot(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.TIMEOUT_SECONDS = 60.0
-        self.client = mongo_db.connect_to_mongodb()
+        # No separate connection needed - unified client handles pooling
         self.summon_words = self.load_words("abby/summon.json", "summon_words")
         self.dismiss_words = self.load_words("abby/dismiss.json", "dismiss_words")
         self.chat_mode = {}         # Track the state of each user's chat.The key is the user_id and the value is either 'normal' or 'code'
         self.user_channel = {}      # Track the channel of each user's chat The key is the user_id and the value is the channel object
         self.active_instances = []  # Track the active instances of the chatbot
+        logger.info(f"[💭] Chatbot initialized with tenant_id: {get_tenant_id()}")
 
 
     # Helper Functions
@@ -94,7 +102,8 @@ class Chatbot(commands.Cog):
         logger.info(f"[💭] Generating summary for user {user_id}, session {session_id}")
         recent_chat_history = chat_history[-5:] if len(chat_history) >= 5 else chat_history
         summary = chat_openai.summarize(recent_chat_history)
-        mongo_db.update_summary(user_id, session_id, summary)
+        # Close session with summary using unified client
+        close_session(user_id, session_id, summary)
     
     def user_chat_mode(self,user_id,chat_mode,chat_history,user_input):
         logger.info(f"[💭] Chat Mode for {user_id} is {chat_mode.get(user_id)}")
@@ -105,7 +114,8 @@ class Chatbot(commands.Cog):
         return response
 
     def user_update_chat_history(self,user_id,session_id, chat_history,user_input,response):
-        mongo_db.insert_interaction(user_id, session_id, user_input.content, response)
+        # Append message to session using unified client (handles encryption)
+        append_session_message(user_id, session_id, user_input.content, response)
         chat_history.append(
             {
                 "input": user_input.content,
@@ -117,17 +127,28 @@ class Chatbot(commands.Cog):
     def initalize_user(self,user_id,session_id,message):
         # Fetch the last summary and insert it into the chat history only when a new conversation is initiated
         logger.info(f"[💭] Initializing user {user_id}, session {session_id} - Checking for last summary!") 
-        mongo_db.update_user_metadata(user_id, message.author.name)
-        last_summary = mongo_db.get_last_summary(user_id) 
-        session = mongo_db.get_session(user_id, session_id)
-        chat_history = session['session'] if session else []
+        # Upsert user metadata using unified client
+        upsert_user(user_id, {"username": message.author.name})
+        
+        # Get last summary from previous sessions
+        sessions_collection = get_sessions_collection()
+        tenant_id = get_tenant_id()
+        previous_session = sessions_collection.find_one(
+            {"tenant_id": tenant_id, "user_id": user_id, "status": "completed"},
+            sort=[("closed_at", -1)]  # Get most recent completed session
+        )
+        last_summary = previous_session.get("summary") if previous_session else None
+        
+        # Create new session using unified client
+        create_session(user_id, session_id, message.channel.id)
+        
+        chat_history = []
         if last_summary:
             logger.info(f"[💭] Initializing user - Last summary found!")
-            chat_history.insert(0,                    {
-                        "input": "Previous Conversation Summary:",
-                        "response": last_summary,
-                    }
-                )
+            chat_history.insert(0, {
+                "input": "Previous Conversation Summary:",
+                "response": last_summary,
+            })
         return chat_history
 
     # Event Listeners
