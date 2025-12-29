@@ -1,7 +1,12 @@
-import openai
 import time
-from dotenv import load_dotenv
 import os
+import sys
+from pathlib import Path
+from dotenv import load_dotenv
+
+# Ensure core package is on path for LLM abstraction
+sys.path.insert(0, str(Path(__file__).parent.parent / "abby-core"))
+from llm.llm_client import LLMClient
 import utils.mongo_db as mongo_db
 from Commands.Admin.persona import get_persona, get_persona_by_name
 from utils.log_config import setup_logging, logging
@@ -12,9 +17,7 @@ logger = logging.getLogger(__name__)
 
 # Load the environment variables from .env file
 load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
-model = "gpt-3.5-turbo"
-client = mongo_db.connect_to_mongodb()
+llm_client = LLMClient()
 
 # System Prompts
 SYSTEM_HELPER = '''
@@ -50,25 +53,19 @@ def chat(user, user_id, chat_history=[]):
         messages.append({"role": "system", "content": system_helper_message})
         for message in chat_history[-4:]:
             messages.append({"role": "user", "content": message["input"]})
-            messages.append(
-                {"role": "assistant", "content": message["response"]})
+            messages.append({"role": "assistant", "content": message["response"]})
 
         messages.append({"role": "user", "content": user})
 
-        # Print out the messages before sending to OpenAI
-        # for message in messages:
-        #     logging.debug(f"Role: {message['role']}, Content: {message['content']}")
         retry_count = 0
         while retry_count < 3:
             try:
-                response = openai.ChatCompletion.create(
-                    model=model,
-                    messages=messages,
-                    temperature=PERSONALITY_NUMBER
+                return llm_client.chat(
+                    messages,
+                    request_type="chat",
+                    temperature=PERSONALITY_NUMBER,
+                    invoker_subject_id=f"SUBJECT:DISCORD-USER-{user_id}",
                 )
-                status_code = response["choices"][0]["finish_reason"]
-                assert status_code == "stop", f"The status code was {status_code}."
-                return response["choices"][0]["message"]["content"]
             except Exception as e:
                 logger.warning(
                     f"An error occurred while processing the chat request: {str(e)}")
@@ -88,20 +85,7 @@ def summarize(chat_session):
     retry_count = 0
     while retry_count < 3:
         try:
-            response = openai.ChatCompletion.create(
-                model=model,
-                messages=[
-                    {"role": "system",
-                        "content": "Summarize this chat session between Abby and the user"},
-                    {"role": "assistant", "content": f"{chat_session}"}
-                ],
-                max_tokens=300,
-                temperature=0
-            )
-
-            status_code = response["choices"][0]["finish_reason"]
-            assert status_code == "stop", f"The status code was {status_code}."
-            return response["choices"][0]["message"]["content"]
+            return llm_client.summarize(chat_session, max_tokens=300)
         except Exception as e:
             logging.warning(
                 f"An error occurred while processing the summarize request: {str(e)}")
@@ -116,19 +100,11 @@ def analyze(user, chat_session):
     retry_count = 0
     while retry_count < 3:
         try:
-            response = openai.ChatCompletion.create(
-                model=model,
-                messages=[
-                    {"role": "system",
-                        "content":  f"Perform a detailed analysis and summarize the key points from these messages and provide feedback for {user}. Provide actionable recommendations to improve their idea's effectiveness for the betterment of the Breeze Club Discord Server."},
-                    {"role": "assistant", "content": f"{chat_session}"}
-                ],
-                max_tokens=3000,
-                temperature=0.3
-            )
-            status_code = response["choices"][0]["finish_reason"]
-            assert status_code == "stop", f"The status code was {status_code}."
-            return response["choices"][0]["message"]["content"]
+            messages = [
+                {"role": "system", "content": f"Perform a detailed analysis and summarize the key points from these messages and provide feedback for {user}. Provide actionable recommendations to improve their idea's effectiveness for the betterment of the Breeze Club Discord Server."},
+                {"role": "assistant", "content": f"{chat_session}"},
+            ]
+            return llm_client.chat(messages, request_type="analyze", temperature=0.3, max_tokens=3000)
         except Exception as e:
             logger.warning(
                 f"An error occurred while processing the summarize request: {str(e)}")
@@ -156,14 +132,13 @@ def chat_gpt4(user, user_id, chat_history=[]):
     retry_count = 0
     while retry_count < 3:
         try:
-            response = openai.ChatCompletion.create(
-                model="gpt-4",
-                messages=messages,
-                temperature=0
+            response = llm_client.chat(
+                messages,
+                request_type="code",
+                temperature=0,
+                model_hint=os.getenv("OPENAI_MODEL", "gpt-4"),
+                invoker_subject_id=f"SUBJECT:DISCORD-USER-{user_id}",
             )
-            status_code = response["choices"][0]["finish_reason"]
-            assert status_code == "stop", f"The status code was {status_code}."
-            response = response["choices"][0]["message"]["content"]
             response = f"[Code Abby]: {response}"
             return response
         except Exception as e:
@@ -174,25 +149,4 @@ def chat_gpt4(user, user_id, chat_history=[]):
             retry_count += 1
 
     return "Oops, something went wrong. Please try again later."
-
-class ChatBot:
-    def __init__(self, api_key, model="gpt-3.5-turbo"):
-        self.api_key = api_key
-        self.model = model
-        openai.api_key = api_key
-
-    def get_response(self, prompt, type_of_prompt, max_tokens=100):
-        try:
-            response = openai.ChatCompletion.create(
-                model=self.model,
-                messages=[
-                    {"role": "system", "content": type_of_prompt},
-                    {"role": "user", "content": prompt},
-                ],
-                max_tokens=max_tokens,
-            )
-            return response.choices[0].message.content.strip()
-
-        except Exception as e:
-            return f"Error: {str(e)}"
 
