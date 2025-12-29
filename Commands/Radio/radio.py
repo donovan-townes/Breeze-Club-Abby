@@ -49,7 +49,7 @@ async def play_next(message):
         voice_channel = message.author.voice.channel
         if voice_channel:
             # Directory where your music files are stored
-            music_dir = "/home/Discrd/songs/"
+            music_dir = Path(os.getenv("SONGS_DIR", "songs"))
             # List all files in the directory
             music_files = os.listdir(music_dir)
             # Select a random file

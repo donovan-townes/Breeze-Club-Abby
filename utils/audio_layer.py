@@ -1,6 +1,15 @@
 import os
 import subprocess
 import shutil
+from pathlib import Path
+
+
+def get_audio_root() -> Path:
+    """Get audio recordings directory from environment."""
+    audio_root = os.getenv("AUDIO_ROOT", "Audio_Recordings")
+    return Path(audio_root)
+
+
 def get_most_recent_folder(path):
     # List all directories in the given path
     dirs = [d for d in os.listdir(path) if os.path.isdir(os.path.join(path, d))]
@@ -33,11 +42,10 @@ def layer_wav_files(output_path, input_dir):
     subprocess.run(ffmpeg_cmd)
 
 if __name__ == "__main__":
-    # Replace this path with the actual parent folder containing the audio recording folders
-    input_dir = "/home/Abby_BreezeClub/Audio_Recordings"
-
-    # Replace this path with the desired output path
-    output_path = "/home/Abby_BreezeClub/Audio_Recordings/OUTPUT.wav"
+    # Get audio root from environment
+    audio_root = get_audio_root()
+    input_dir = str(audio_root)
+    output_path = str(audio_root / "OUTPUT.wav")
 
     layer_wav_files(output_path, input_dir)
 

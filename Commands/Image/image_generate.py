@@ -88,11 +88,15 @@ async def imagine(ctx,style_preset="enhance", *, text):
 
     data = response.json()
 
+    images_dir = Path(os.getenv("IMAGES_DIR", "Images"))
+    images_dir.mkdir(parents=True, exist_ok=True)
+    output_path = images_dir / "generate_image.png"
+
     for i, image in enumerate(data["artifacts"]):
-        with open(f"/home/Abby_BreezeClub/Images/generate_image.png", "wb") as f:
+        with open(output_path, "wb") as f:
             f.write(base64.b64decode(image["base64"]))
 
-        file = discord.File(f"/home/Abby_BreezeClub/Images/generate_image.png")
+        file = discord.File(str(output_path))
         await processing.delete()
         sent_message = await ctx.send(file=file)
         
@@ -187,11 +191,15 @@ async def imgimg(ctx, *, text):
             raise Exception("Non-200 response: " + str(response.text))
         data = response.json()
         
+        images_dir = Path(os.getenv("IMAGES_DIR", "Images"))
+        images_dir.mkdir(parents=True, exist_ok=True)
+        output_path = images_dir / "edited_image.png"
+        
         for i, image in enumerate(data["artifacts"]):
-            with open(f"/home/Abby_BreezeClub/Images/edited_image.png", "wb") as f:
+            with open(output_path, "wb") as f:
                 f.write(base64.b64decode(image["base64"]))
 
-        file = discord.File(f"/home/Abby_BreezeClub/Images/edited_image.png")
+        file = discord.File(str(output_path))
         await processing.delete()
         sent_message = await ctx.send(file=file)
         await sent_message.add_reaction(ABBY_IDLE)
@@ -274,10 +282,14 @@ async def upscale(ctx):
         if response.status_code != 200:
             raise Exception("Non-200 response: " + str(response.text))
 
-        with open(f"/home/Abby_BreezeClub/Images/upscaled_image.png", "wb") as f:
-            f.write(response.content)
+        images_dir = Path(os.getenv("IMAGES_DIR", "Images"))
+        images_dir.mkdir(parents=True, exist_ok=True)
+        output_path = images_dir / "upscaled_image.png"
         
-        file = discord.File(f"/home/Abby_BreezeClub/Images/upscaled_image.png")
+        with open(output_path, "wb") as f:
+            f.write(response.content)
+
+        file = discord.File(str(output_path))
         await processing.delete()
         sent_message = await ctx.send(file=file)
         await sent_message.add_reaction(ABBY_IDLE)    

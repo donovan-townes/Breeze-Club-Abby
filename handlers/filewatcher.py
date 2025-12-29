@@ -75,7 +75,8 @@ class FileChangeHandler(FileSystemEventHandler):
                 logger.warning(f"[👁‍🗨] Error Loading Modules: {str(e)}")
                 return
 def watch_files(bot):
-    folder_path = "/home/Discord/Commands"  # Replace with your desired folder path
+    working_dir = Path(os.getenv("WORKING_DIRECTORY", os.getcwd()))
+    folder_path = str(working_dir / "Commands")
 
     event_handler = FileChangeHandler(folder_path, bot)
     observer = Observer()
@@ -92,7 +93,8 @@ def watch_files(bot):
 class FileWatcherCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.folder_path = "/home/Discord/Commands"  # Replace with your desired folder path
+        working_dir = Path(os.getenv("WORKING_DIRECTORY", os.getcwd()))
+        self.folder_path = str(working_dir / "Commands")
         self.start_watching()
         
   

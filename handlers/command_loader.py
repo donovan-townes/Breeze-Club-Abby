@@ -1,6 +1,7 @@
 import os
 import importlib
 import sys
+from pathlib import Path
 from tabulate import tabulate
 from utils.log_config import setup_logging,logging
 import discord
@@ -11,7 +12,9 @@ import time
 import hashlib
 
 
-FOLDER = "/home/Discord/"
+# Use environment variable for working directory (Windows-compatible)
+WORKING_DIRECTORY = Path(os.getenv("WORKING_DIRECTORY", os.getcwd()))
+FOLDER = str(WORKING_DIRECTORY)
 
 class CommandHandler(commands.Cog):
     def __init__(self, bot):

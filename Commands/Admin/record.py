@@ -3,6 +3,7 @@ import subprocess
 import discord
 from discord.ext import commands
 from discord.ext.commands import Group
+from pathlib import Path
 
 from utils.log_config import logging, setup_logging
 import os
@@ -10,6 +11,13 @@ from utils import audio_layer
 
 setup_logging()
 logger = logging.getLogger(__name__)
+
+
+def get_audio_root() -> Path:
+    """Get audio recordings directory from environment."""
+    audio_root = os.getenv("AUDIO_ROOT", "Audio_Recordings")
+    return Path(audio_root)
+
 
 connections = {}
 async def once_done(sink, channel, *args):
@@ -31,18 +39,18 @@ async def once_done(sink, channel, *args):
     date_time = datetime.now().strftime("%Y-%m-%d_%I-%M%p")
 
     # Create a directory to save the audio files if it doesn't exist
-    save_directory = f"/home/Abby_BreezeClub/Audio_Recordings/{date_time}"
-    if not os.path.exists(save_directory):
-        os.makedirs(save_directory)
+    audio_root = get_audio_root()
+    save_directory = audio_root / date_time
+    save_directory.mkdir(parents=True, exist_ok=True)
 
     # Save individual user files
     saved_files = []
     for user_id, audio in sink.audio_data.items():
         # Generate a file path where the audio file will be saved
-        file_path = os.path.join(save_directory, f"{user_id}.{sink.encoding}")
+        file_path = save_directory / f"{user_id}.{sink.encoding}"
         with open(file_path, "wb") as file:
             file.write(audio.file.read())  # Save the audio file locally
-        saved_files.append(file_path)
+        saved_files.append(str(file_path))
 
         #     # Send the actual audio file to the Discord channel
         # with open(file_path, 'rb') as fp:
@@ -50,8 +58,8 @@ async def once_done(sink, channel, *args):
 
     await channel.send(f"Finished recording audio for: {', '.join(recorded_users)}.")
     # After saving the files, call the audio_layer function to combine them
-    output_path = f"/home/Abby_BreezeClub/Audio_Recordings/{date_time}_COMBINED.wav"
-    audio_layer.layer_wav_files(output_path, save_directory)
+    output_path = audio_root / f"{date_time}_COMBINED.wav"
+    audio_layer.layer_wav_files(str(output_path), str(save_directory))
     logger.info(f"Finished combining audio files. Output path: {output_path}")
 
     # Send the combined audio file to the Discord channel
