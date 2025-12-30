@@ -12,25 +12,80 @@
 
 ## About
 
-Abby is a Discord bot for the Breeze Club Discord Server. It is written in Python and uses the [discord.py](https://discordpy.readthedocs.io/en/stable/) library. It is hosted on [Linode](https://www.linode.com/). She is designed to be a fun and useful bot for the server, packed with features and the ability to be expanded upon.
+Abby is a creative assistant Discord bot for the Breeze Club community, designed to support artists, producers, and music enthusiasts. Built with Python and [discord.py](https://discordpy.readthedocs.io/en/stable/), Abby integrates with TDOS (Townes Digital Operating System) for governance signals and observability.
 
-She's still under development, so expect bugs and missing features. If you find any bugs, please report them in the Discord server. If you have any suggestions, please also post them in the Discord server. If you want to contribute, please contact me on Discord. (I'm `@z8phyr_`)
+**Now featuring:**
 
-Many notable features include her bunny personality, her image-generation commands, and her experience system. But there's a lot more to her than that! Check out the commands section below for more information.
+- 🤖 **LLM Integration** - Ollama-first (local inference) with OpenAI fallback
+- 📚 **RAG System** - Retrieval-Augmented Generation for reference documents
+- 🎨 **Moderation** - Auto-move images, engagement nudges, XP tuning
+- 🎥 **Twitch Integration** - Live notifications with slash commands
+- 🔄 **Migration Tools** - Chroma → Qdrant vector store migration
+
+Abby is under active development as part of a comprehensive modernization effort. Check out [PLAN_ABBY.md](PLAN_ABBY.md) for the full roadmap.
 
 ## Features
 
-- Banking
-- Calender
-- Chatbot
-- [Commands](#commands)
-- Exp
-- Fun
-- Greetings
-- handlers
-- Twtich
-- Twitter
-- utils
+### Core Systems
+
+- **LLM Abstraction** - Provider-agnostic AI (Ollama primary, OpenAI fallback)
+- **RAG Foundation** - Vector-based knowledge retrieval (Chroma/Qdrant)
+- **TDOS Integration** - Governance events, heartbeat, error logging
+- **MongoDB Unified Schema** - Tenant-scoped data model
+
+### Engagement & Moderation
+
+- **XP System** - Configurable rate limits, cooldowns, bonuses
+- **Moderation** - Auto-move images, gentle nudges for inactive users
+- **Economy** - Banking, rewards, creative services catalog
+
+### Creative Tools
+
+- **Chatbot** - AI-powered conversations with RAG context
+- **Image Generation** - Artist promotion and creative visuals
+- **Script Generation** - Text generation for captions, bios, descriptions
+
+### Integrations
+
+- **Twitch** - Live notifications, user linking, auto-polling
+- **URL Handlers** - Auto-embeds for YouTube, Twitch, social media
+- **Greetings** - Welcome messages, MOTD, announcements
+
+---
+
+## Quick Start
+
+See [docs/QUICK_START_PHASE_5_6.md](docs/QUICK_START_PHASE_5_6.md) for installation and configuration.
+
+**TL;DR:**
+
+```bash
+# Clone and install
+git clone <repo>
+cd Abby_Discord_Latest
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+
+# Configure
+cp .env.example .env
+# Edit .env with your Discord token, MongoDB URI, channel IDs
+
+# Run
+python main.py
+```
+
+---
+
+## Documentation
+
+- 📋 **[PLAN_ABBY.md](PLAN_ABBY.md)** - Full modernization roadmap
+- 🚀 **[Quick Start](docs/QUICK_START_PHASE_5_6.md)** - Get up and running in 5 minutes
+- 📚 **[RAG Usage Guide](docs/RAG_USAGE_GUIDE.md)** - Comprehensive RAG workflow for Discord
+- 🛠️ **[Phase 5/6 Summary](docs/PHASE_5_6_SUMMARY.md)** - Moderation, Twitch, Qdrant features
+- ⚙️ **[LLM Configuration](docs/LLM_CONFIGURATION.md)** - LLM abstraction setup
+- 🔄 **[MongoDB Migration](docs/MONGODB_MIGRATION_CHANGES.md)** - Unified schema details
+- 🪪 **[Moderation & Qdrant](docs/MODERATION_AND_QDRANT.md)** - Config reference
 
 ---
 
