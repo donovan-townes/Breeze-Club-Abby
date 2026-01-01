@@ -9,7 +9,7 @@ param(
 )
 
 $ErrorActionPreference = "Continue"
-$BotPath = 'C:\abby_bot'
+$BotPath = 'C:\opt\tdos\apps\abby'
 $LogDir = Join-Path $BotPath 'logs'
 $StdoutLog = Join-Path $LogDir 'service_stdout.log'
 $StderrLog = Join-Path $LogDir 'service_stderr.log'

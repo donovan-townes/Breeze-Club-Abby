@@ -101,17 +101,17 @@ eventvwr.msc
 ssh tserver@100.108.120.82
 
 # View last 100 lines of STDOUT
-Get-Content C:\abby_bot\logs\service_stdout.log -Tail 100
+Get-Content C:\opt\tdos\apps\abby\logs\service_stdout.log -Tail 100
 
 # View last 100 lines of STDERR
-Get-Content C:\abby_bot\logs\service_stderr.log -Tail 100
+Get-Content C:\opt\tdos\apps\abby\logs\service_stderr.log -Tail 100
 
 # Follow STDOUT in real-time
-Get-Content C:\abby_bot\logs\service_stdout.log -Tail 20 -Wait
+Get-Content C:\opt\tdos\apps\abby\logs\service_stdout.log -Tail 20 -Wait
 
 # Clear logs
-Clear-Content C:\abby_bot\logs\service_stdout.log
-Clear-Content C:\abby_bot\logs\service_stderr.log
+Clear-Content C:\opt\tdos\apps\abby\logs\service_stdout.log
+Clear-Content C:\opt\tdos\apps\abby\logs\service_stderr.log
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # 🔍 DEBUGGING
@@ -124,7 +124,7 @@ python launch.py
 
 # Remote debug mode (stop service and run Python manually)
 ssh tserver@100.108.120.82
-cd C:\abby_bot
+cd C:\opt\tdos\apps\abby
 .\scripts\abby-service.ps1 -Action debug
 # Ctrl+C to exit
 
@@ -149,7 +149,7 @@ pip freeze > requirements.txt
 
 # Or manually:
 ssh tserver@100.108.120.82
-cd C:\abby_bot
+cd C:\opt\tdos\apps\abby
 .\.venv\Scripts\activate
 pip install -r requirements.txt
 
@@ -157,12 +157,12 @@ pip install -r requirements.txt
 # 💾 BACKUP & RESTORE
 # ═══════════════════════════════════════════════════════════════════════════════
 
-# Backup MongoDB
+# Backup MongoDB (Needs implement)
 .\scripts\abby-batch.ps1 -Command backup-db
 
 # Manual backup
 ssh tserver@100.108.120.82
-mongodump --out C:\temp\backup_$(Get-Date -Format 'yyyy-MM-dd')
+mongodump --out C:\opt\tdos\temp\backup_$(Get-Date -Format 'yyyy-MM-dd')
 
 # Restore MongoDB (if needed)
 ssh tserver@100.108.120.82
@@ -180,7 +180,7 @@ ssh tserver@100.108.120.82
 nssm stop AbbyBot
 
 # 3. Launch debug mode to see errors
-cd C:\abby_bot
+cd C:\opt\tdos\apps\abby
 .\scripts\abby-service.ps1 -Action debug
 
 # 4. Fix the issue based on error messages
@@ -244,7 +244,7 @@ TYPICAL WORKFLOW:
 
 3. Monitor Remote
    ssh tserver@100.108.120.82
-   cd C:\abby_bot
+   cd C:\opt\tdos\apps\abby
    .\scripts\abby-service.ps1 -Action logs-tail
 
 4. If Issues

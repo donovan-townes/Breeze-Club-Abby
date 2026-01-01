@@ -2,7 +2,7 @@ import os
 import sys
 from typing import List, Dict, Any
 
-from utils.log_config import setup_logging, logging
+from abby_core.observability.logging import setup_logging, logging
 setup_logging()
 logger = logging.getLogger(__name__)
 
@@ -13,7 +13,7 @@ try:
 except Exception:
     chromadb = None
 
-from utils.rag_qdrant import QdrantWrapper
+from abby_core.rag.qdrant_client import QdrantWrapper
 
 
 def fetch_chroma_items(collection_name: str) -> List[Dict[str, Any]]:
