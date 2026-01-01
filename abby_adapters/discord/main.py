@@ -68,7 +68,12 @@ class Abby(commands.Bot):
     @commands.Cog.listener()
     async def on_command_error(self, ctx, error):
         """Global error handler for commands."""
-        logger.error(f"[🐰] Command error in {ctx.command}: {error}")
+        # Use ASCII-safe logging to avoid Windows console encoding issues
+        try:
+            logger.error(f"[ABBY] Command error in {ctx.command}: {error}")
+        except (UnicodeEncodeError, UnicodeDecodeError):
+            # Fallback if emojis cause encoding issues
+            logger.error(f"Command error in {ctx.command}: {repr(error)}")
         
         # Emit TDOS error event
         try:

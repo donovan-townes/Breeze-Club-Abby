@@ -2,9 +2,22 @@ import logging
 import coloredlogs
 import requests
 import json
+import sys
 from pathlib import Path
 
+webhook_url = "https://discord.com/api/webhooks/your_webhook_url_here" # Move to config in future
+
 def setup_logging():
+    # Fix Windows console encoding for emoji support
+    if sys.platform == 'win32':
+        try:
+            # Try to set UTF-8 encoding for stdout/stderr
+            sys.stdout.reconfigure(encoding='utf-8')
+            sys.stderr.reconfigure(encoding='utf-8')
+        except (AttributeError, Exception):
+            # If reconfigure not available or fails, install a safe handler
+            pass
+    
     log_format = (
         "[%(asctime)s] [%(levelname)s] - [%(name)s]: %(message)s"
     )
@@ -18,8 +31,12 @@ def setup_logging():
         'critical': {'color': 'red', 'bold': True},
     }
     
-    # Set up the colored logs
-    coloredlogs.install(level='INFO', fmt=log_format, level_styles=level_styles)
+    # Set up the colored logs with error handling for encoding issues
+    try:
+        coloredlogs.install(level='INFO', fmt=log_format, level_styles=level_styles)
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        # Fallback to basic logging if colored logs fail
+        logging.basicConfig(level=logging.INFO, format=log_format)
     
 
     # Get the root logger

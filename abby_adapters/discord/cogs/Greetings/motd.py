@@ -1,78 +1,169 @@
 from abby_core.observability.logging import setup_logging, logging
 from abby_core.llm.client import LLMClient
-# from datetime import datetime, timedelta
 import datetime
 import asyncio
+import discord
+from discord import app_commands
 from discord.ext import tasks, commands
+from typing import Optional
 
-#Environment Variables
 import os
 from dotenv import load_dotenv
+
 load_dotenv()
 setup_logging()
 logger = logging.getLogger(__name__)
 
-#Discord Channels
-GUST_CHANNEL = 802461884091465748
-ABBY_CHAT = 1103490012500201632
-START_TIME = 5
-
 class Motd(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        
+        # Load configuration from environment
+        self.motd_channel_id = int(os.getenv("MOTD_CHANNEL_ID", 0))
+        self.motd_start_hour = int(os.getenv("MOTD_START_HOUR", 5))
+        self.last_motd: Optional[str] = None
+        
+        logger.info(f"[👋] MOTD initialized (channel: {self.motd_channel_id}, start: {self.motd_start_hour}:00)")
 
-        #GPT Call
-    async def generate_message(self):
-        logger.info("[👋] Generating Message (LLMClient)")
-        channel = self.bot.get_channel(ABBY_CHAT)
+    async def generate_message(self) -> Optional[str]:
+        """Generate a Message of the Day using LLM."""
+        logger.info("[👋] Generating MOTD (LLMClient)")
         try:
             llm_client = LLMClient()
-            response = await llm_client.chat(
-                messages=[
-                    {"role": "system", "content": "You are a creative, thoughtful, and inspiring bunny."},
-                    {"role": "user", "content": "I need your assistance, GPT! 🐇✨"},
-                    {"role": "assistant", "content": "Of course, dear Abby, bunny assistant! How can I help you today? 🌟"},
-                    {"role": "user", "content": "I'm looking for an inspiring and uplifting message for our creators in the Breeze Club Discord server. Can you generate a 'Message of the Day' that will fill their hearts with joy and motivation? 🎨🌈"},
-                    {"role": "assistant", "content": "Absolutely! Let me channel my creative powers and bring forth a delightful message (formatted for Discord) for your creators in the server to cherish - about 200 characters! *hops into creative mode* 🎩✨"},
-                    {"role": "assistant", "content": "Message of the Day:"},
-                ],
-                max_tokens=300,
-                temperature=1.5,
+            # LLMClient.chat() is synchronous, run in executor to avoid blocking
+            loop = asyncio.get_event_loop()
+            response = await loop.run_in_executor(
+                None,
+                lambda: llm_client.chat(
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": (
+                                "You are Abby, a creative and inspiring bunny assistant for the Breeze Club Discord community. "
+                                "Generate an uplifting, motivational Message of the Day that encourages creativity and positivity. "
+                                "Keep it concise (150-200 characters), warm, and suitable for Discord. Use emojis sparingly."
+                            )
+                        },
+                        {
+                            "role": "user",
+                            "content": "Generate an inspiring Message of the Day for our creative community."
+                        }
+                    ],
+                    max_tokens=150,
+                    temperature=1.2,
+                    request_type="motd_generation",
+                )
             )
             return response
         except Exception as e:
-            logger.error(f"[👋] Error generating message: {e}")
-            await channel.send(f"Error generating MOTD message: {e}")
+            logger.error(f"[👋] Error generating MOTD: {e}")
             return None
+
+    async def send_motd(self, channel: discord.TextChannel, force: bool = False) -> bool:
+        """Send MOTD to specified channel."""
+        logger.info("[👋] Sending MOTD")
+        
+        message_content = await self.generate_message()
+        if not message_content:
+            logger.error("[👋] Failed to generate MOTD")
+            return False
+        
+        # Store the last generated MOTD
+        self.last_motd = message_content
+        
+        motd_message = f"**Message of the Day**:\n{message_content}"
+        try:
+            message = await channel.send(motd_message)
+            await message.add_reaction('<a:z8_leafheart_excited:806057904431693824>')
+            logger.info("[👋] MOTD sent successfully")
+            return True
+        except Exception as e:
+            logger.error(f"[👋] Error sending MOTD: {e}")
+            return False
+
+    @app_commands.command(name="motd", description="View the current Message of the Day")
+    async def motd_view(self, interaction: discord.Interaction):
+        """View the current MOTD."""
+        if self.last_motd:
+            embed = discord.Embed(
+                title="💬 Message of the Day",
+                description=self.last_motd,
+                color=0x00ff88
+            )
+            embed.set_footer(text="Generated by Abby 🐰")
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+        else:
+            await interaction.response.send_message(
+                "No MOTD has been generated yet today. Wait for the daily message or use `/motd send` to generate one!",
+                ephemeral=True
+            )
+
+    @app_commands.command(name="motd-send", description="Manually send a new Message of the Day")
+    @app_commands.default_permissions(manage_messages=True)
+    async def motd_send(self, interaction: discord.Interaction):
+        """Manually trigger MOTD generation and send."""
+        await interaction.response.defer(ephemeral=True)
+        
+        if self.motd_channel_id == 0:
+            await interaction.followup.send(
+                "❌ MOTD channel not configured. Please set `MOTD_CHANNEL_ID` in your .env file.",
+                ephemeral=True
+            )
+            return
+        
+        channel = self.bot.get_channel(self.motd_channel_id)
+        if not channel:
+            await interaction.followup.send(
+                f"❌ Could not find channel with ID {self.motd_channel_id}",
+                ephemeral=True
+            )
+            return
+        
+        success = await self.send_motd(channel, force=True)
+        if success:
+            await interaction.followup.send(
+                f"✅ MOTD sent successfully to {channel.mention}!",
+                ephemeral=True
+            )
+        else:
+            await interaction.followup.send(
+                "❌ Failed to generate or send MOTD. Check logs for details.",
+                ephemeral=True
+            )
         
     @commands.Cog.listener()
     async def on_ready(self):
+        """Start the scheduled MOTD task when bot is ready."""
         if not self.motd_task.is_running():
             self.motd_task.start()
 
     @tasks.loop(hours=24)
-    
     async def motd_task(self):
-        logger.info("[👋] Sending MOTD")
-        channel = self.bot.get_channel(GUST_CHANNEL)
-        message_content = await self.generate_message()
-        motd_message = f"**Message of the Day**:\n{message_content}"
-        message = await channel.send(motd_message)
-        await message.add_reaction('<a:z8_leafheart_excited:806057904431693824>')
-        logger.info("[👋] MOTD Sent")
-
+        """Scheduled task to send MOTD daily."""
+        if self.motd_channel_id == 0:
+            logger.warning("[👋] MOTD channel not configured, skipping scheduled message")
+            return
+            
+        channel = self.bot.get_channel(self.motd_channel_id)
+        if not channel:
+            logger.error(f"[👋] Could not find MOTD channel {self.motd_channel_id}")
+            return
+        
+        await self.send_motd(channel)
 
     @motd_task.before_loop
     async def before_motd_task(self):
+        """Wait until the configured start hour before running scheduled task."""
         await self.bot.wait_until_ready()
         now = datetime.datetime.now()
-        if now.hour < START_TIME:  # if it's before START_TIME
-            wait_time = START_TIME - now.hour
-        else:  # if it's past START_TIME
-            wait_time = 24 - (now.hour - START_TIME)
-        logger.info(
-            f"[👋 ] MOTD initialized. Next message in {wait_time} hours.")
-        await asyncio.sleep(wait_time * 3600) # Sleep until 5AM
+        
+        if now.hour < self.motd_start_hour:
+            wait_hours = self.motd_start_hour - now.hour
+        else:
+            wait_hours = 24 - (now.hour - self.motd_start_hour)
+        
+        logger.info(f"[👋] MOTD task scheduled. Next message in {wait_hours} hours.")
+        await asyncio.sleep(wait_hours * 3600)
 
 
 async def setup(bot):
