@@ -44,7 +44,7 @@ scp C:\Abby_Discord_Latest\.env tserver@100.108.120.82:"C:\abby_bot\.env.product
 ssh tserver@100.108.120.82
 
 # On TSERVER:
-cd C:\abby_bot
+cd C:\opt\tdos\apps\abby\
 
 # Create production .env (edit for TSERVER environment)
 copy .env.production .env
@@ -69,17 +69,17 @@ python launch.py
 # Still on TSERVER, run as Administrator:
 
 # Install service
-nssm install AbbyBot "C:\abby_bot\.venv\Scripts\python.exe" "C:\abby_bot\launch.py"
+nssm install AbbyBot "C:\opt\tdos\apps\abby\.venv\Scripts\python.exe" "C:\opt\tdos\apps\abby\launch.py"
 
 # Configure service
-nssm set AbbyBot AppDirectory "C:\abby_bot"
+nssm set AbbyBot AppDirectory "C:\opt\tdos\apps\abby"
 nssm set AbbyBot DisplayName "Abby Discord Bot"
 nssm set AbbyBot Description "Abby - Breeze Club Discord Assistant (24/7)"
 nssm set AbbyBot Start SERVICE_AUTO_START
 
 # Set up logging
-nssm set AbbyBot AppStdout "C:\abby_bot\logs\service_stdout.log"
-nssm set AbbyBot AppStderr "C:\abby_bot\logs\service_stderr.log"
+nssm set AbbyBot AppStdout "C:\opt\tdos\apps\abby\logs\service_stdout.log"
+nssm set AbbyBot AppStderr "C:\opt\tdos\apps\abby\logs\service_stderr.log"
 nssm set AbbyBot AppRotateFiles 1
 nssm set AbbyBot AppRotateOnline 1
 nssm set AbbyBot AppRotateBytes 1048576  # 1MB log rotation
@@ -110,8 +110,8 @@ nssm start AbbyBot
 nssm restart AbbyBot
 
 # View service logs
-type C:\abby_bot\logs\service_stdout.log
-type C:\abby_bot\logs\service_stderr.log
+type C:\opt\tdos\apps\abby\logs\service_stdout.log
+type C:\opt\tdos\apps\abby\logs\service_stderr.log
 
 # Remove service (if needed)
 nssm remove AbbyBot confirm
@@ -131,17 +131,17 @@ cd C:\Abby_Discord_Latest
 ```powershell
 # Option 1: Full sync (after major changes)
 ssh tserver@100.108.120.82 "nssm stop AbbyBot"
-scp -r C:\Abby_Discord_Latest\abby_core tserver@100.108.120.82:"C:\abby_bot\"
-scp -r C:\Abby_Discord_Latest\abby_adapters tserver@100.108.120.82:"C:\abby_bot\"
+scp -r C:\Abby_Discord_Latest\abby_core tserver@100.108.120.82:"C:\opt\tdos\apps\abby\"
+scp -r C:\Abby_Discord_Latest\abby_adapters tserver@100.108.120.82:"C:\opt\tdos\apps\abby\"
 ssh tserver@100.108.120.82 "nssm start AbbyBot"
 
 # Option 2: Specific file updates
 ssh tserver@100.108.120.82 "nssm stop AbbyBot"
-scp C:\Abby_Discord_Latest\abby_core\llm\client.py tserver@100.108.120.82:"C:\abby_bot\abby_core\llm\"
+scp C:\Abby_Discord_Latest\abby_core\llm\client.py tserver@100.108.120.82:"C:\opt\tdos\apps\abby\abby_core\llm\"
 ssh tserver@100.108.120.82 "nssm start AbbyBot"
 
 # Option 3: Use rsync (if installed) for smart sync
-rsync -avz --exclude='.git' --exclude='__pycache__' --exclude='.env' C:\Abby_Discord_Latest\ tserver@100.108.120.82:"C:\abby_bot\"
+rsync -avz --exclude='.git' --exclude='__pycache__' --exclude='.env' C:\Abby_Discord_Latest\ tserver@100.108.120.82:"C:\opt\tdos\apps\abby\"
 ```
 
 ### Environment Configuration:
@@ -192,16 +192,16 @@ mongorestore C:\temp\dump
 ├─ Stop:    nssm stop AbbyBot
 ├─ Restart: nssm restart AbbyBot
 ├─ Status:  nssm status AbbyBot
-└─ Logs:    type C:\abby_bot\logs\service_stdout.log
+└─ Logs:    type C:\opt\tdos\apps\abby\logs\service_stdout.log
 
 🔄 Deploy Updates:
 1. Stop service on TSERVER
-2. SCP files to C:\abby_bot\
+2. SCP files to C:\opt\tdos\apps\abby\
 3. Start service on TSERVER
 
 🚨 Emergency Access:
 ssh tserver@100.108.120.82
-cd C:\abby_bot
+cd C:\opt\tdos\apps\abby\
 .venv\Scripts\activate
 python launch.py  # Manual mode for debugging
 ```

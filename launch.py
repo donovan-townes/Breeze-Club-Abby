@@ -9,6 +9,11 @@ from pathlib import Path
 ABBY_ROOT = Path(__file__).parent
 sys.path.insert(0, str(ABBY_ROOT))
 
+# Add tdos_memory library to Python path
+TDOS_LIBS = ABBY_ROOT.parent.parent / "libs"
+sys.path.insert(0, str(TDOS_LIBS))
+
+
 # Launch Discord adapter
 if __name__ == "__main__":
     from abby_adapters.discord import main as discord_main

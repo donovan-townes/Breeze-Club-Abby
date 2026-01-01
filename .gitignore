@@ -5,7 +5,8 @@ __pycache__/
 logs/
 tests/
 songs/
-memory_docs/
+memory_docs
 shared/
 deploy-to-tserver.ps1
+tdos_memory/
 

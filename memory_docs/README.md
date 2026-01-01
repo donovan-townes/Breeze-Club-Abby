@@ -11,6 +11,7 @@
 The Memory System is a typed, deterministic framework for extracting, storing, and retrieving subject-scoped relational intelligence. It separates raw interaction data from validated facts, enabling safe reuse across agents, domains, and TDOS pipelines.
 
 **Key Design Principles**:
+
 - ✅ Memory is append-only with decay (never deleted, only expired)
 - ✅ Memory is typed (USER_FACT | USER_PATTERN | SHARED_NARRATIVE)
 - ✅ Memory is subject-scoped (no cross-subject leakage)
@@ -53,21 +54,25 @@ The Memory System is a typed, deterministic framework for extracting, storing, a
 ## Use Cases
 
 **Abby (Discord Bot)**
+
 - Store user preferences, hobbies, facts
 - Adapt response style per-user
 - Maintain continuity across sessions
 
 **Future Clerk/Scribe Agents**
+
 - Extract and store client meeting notes
 - Track project context across interactions
 - Enable handoff between agents
 
 **TDOS Integration**
+
 - Subject-scoped memory for kernel agents
 - Audit trail via event log (immutable)
 - Tenant isolation guarantees
 
 **Self (Creator)**
+
 - Personal subject profile
 - Interaction history with agents
 - Long-term context for creative work
@@ -106,7 +111,9 @@ system_prompt = f"You know: {context}\n\nRespond naturally."
 ## Key Concepts
 
 ### Memory Envelope Pattern
+
 The primary pattern for packaging subject intelligence. Includes:
+
 - Identity (subject, tenant)
 - Facts (typed, scored)
 - Patterns (aggregated behaviors)
@@ -116,6 +123,7 @@ The primary pattern for packaging subject intelligence. Includes:
 → See [MEMORY_ENVELOPE.md](./MEMORY_ENVELOPE.md)
 
 ### Extraction Pipeline
+
 1. **Summarization** (external) → narrative text
 2. **Extraction** (LLM) → candidate facts
 3. **Validation** (rule-based) → ground against summary
@@ -125,6 +133,7 @@ The primary pattern for packaging subject intelligence. Includes:
 → See [EXTRACTION_RULES.md](./EXTRACTION_RULES.md)
 
 ### Confidence & Decay
+
 - **USER_FACT** — confidence 0.8+, slow decay (30 days)
 - **USER_PATTERN** — confidence 0.75+, medium decay (14 days)
 - **SHARED_NARRATIVE** — confidence 0.6+, fast decay (7 days)
@@ -160,15 +169,15 @@ facts = memory_system.extract_facts(summary, subject_id, tenant_id)
 
 This system maps cleanly to TDOS kernel concepts:
 
-| Memory Concept | TDOS Analog |
-|---|---|
-| subject_id | SUBJECT:TYPE:VALUE |
-| tenant_id | TENANT:NAME |
-| memory_envelope | Context envelope for job execution |
-| extraction event | Audit log entry |
-| decay/expiry | TTL on ledger artifacts |
-| append-only | Ledger immutability principle |
-| confidence | Determinism/trust scoring |
+| Memory Concept   | TDOS Analog                        |
+| ---------------- | ---------------------------------- |
+| subject_id       | SUBJECT:TYPE:VALUE                 |
+| tenant_id        | TENANT:NAME                        |
+| memory_envelope  | Context envelope for job execution |
+| extraction event | Audit log entry                    |
+| decay/expiry     | TTL on ledger artifacts            |
+| append-only      | Ledger immutability principle      |
+| confidence       | Determinism/trust scoring          |
 
 → See [TDOS_MAPPING.md](./TDOS_MAPPING.md)
 
@@ -258,7 +267,7 @@ This system is ready to become a TDOS module. When integrating:
 
 **Current Version**: 1.0  
 **Stability**: Production  
-**TDOS Compatibility**: v1.4+  
+**TDOS Compatibility**: v1.4+
 
 Breaking changes will be documented and versioned. Additive changes backward-compatible.
 

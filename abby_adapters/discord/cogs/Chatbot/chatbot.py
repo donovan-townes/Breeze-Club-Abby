@@ -20,15 +20,13 @@ from abby_core.database.mongodb import (
     create_session, append_session_message, close_session, 
     get_sessions_collection, upsert_user
 )
-# Memory envelope system for contextual intelligence
-from abby_core.llm.memory_envelope import (
+# Memory envelope system for contextual intelligence (TDOS Memory v1.0)
+import tdos_memory as memory
+from tdos_memory import (
     get_memory_envelope, format_envelope_for_llm, 
-    invalidate_cache, add_memorable_fact, update_relational_memory
-)
-# Memory extraction system (LLM-based fact extraction & pattern analysis)
-from abby_core.llm.memory_extraction import (
+    invalidate_cache, add_memorable_fact, update_relational_memory,
     extract_facts_from_summary, analyze_conversation_patterns,
-    apply_confidence_decay, add_shared_narrative, get_shared_narratives
+    apply_decay, add_shared_narrative, get_shared_narratives
 )
 # Optional RAG integration
 try:
@@ -306,7 +304,7 @@ class Chatbot(commands.Cog):
                     facts = profile_for_decay["creative_profile"].get("memorable_facts", [])
                     if facts:
                         logger.info(f"[⏱️] Applying confidence decay to {len(facts)} existing facts...")
-                        updated_facts = apply_confidence_decay(facts, decay_days=30)
+                        updated_facts = apply_decay(facts)
                         
                         # Update facts in database with write concern
                         from pymongo.write_concern import WriteConcern

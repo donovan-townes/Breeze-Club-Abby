@@ -12,6 +12,7 @@
 The memory system is designed from the ground up to integrate seamlessly with TDOS kernel architecture. This document maps memory system concepts to TDOS kernel primitives.
 
 **Core Alignment**:
+
 - ✅ Deterministic (same input → same extraction)
 - ✅ Provenance-aware (all writes audited)
 - ✅ Immutable truth (append-only with decay)
@@ -25,6 +26,7 @@ The memory system is designed from the ground up to integrate seamlessly with TD
 ## Subject ID Mapping
 
 ### Memory System Format
+
 ```
 subject_id: str = "USER:246030816692404234"
 tenant_id: str = "TENANT:BreezeCrew"
@@ -33,6 +35,7 @@ tenant_id: str = "TENANT:BreezeCrew"
 ### TDOS Kernel Format
 
 **Mapping to TDOS Subject**:
+
 ```
 TDOS Subject: {
     type: "USER",
@@ -47,6 +50,7 @@ memory.tenant_id = "TENANT:BreezeCrew"
 ```
 
 **Query Enforcement**:
+
 ```python
 # ✅ Correct: Subject + Tenant scoped
 profile = db.discord_profiles.find_one({
@@ -97,31 +101,31 @@ MEMORY_EXTRACTION_JOB = {
     "name": "extract_memorable_facts",
     "version": "1.0",
     "description": "Extract facts from conversation summary",
-    
+
     "inputs": {
         "summary": str,                 # Conversation summary
         "subject_id": str,              # USER:123
         "tenant_id": str,               # TENANT:guild
     },
-    
+
     "outputs": {
         "facts_extracted": List[dict],
         "facts_stored": int,
         "rejected_count": int,
         "event_ids": List[str],
     },
-    
+
     "requires_permissions": [
         "memory:write:{subject_id}",    # Can write to this subject's memory
         "tenant:access:{tenant_id}",    # Can access this tenant
     ],
-    
+
     "isolation": {
         "subject_scoped": True,         # Only affects one subject
         "tenant_scoped": True,          # Only affects one tenant
         "side_effects": "append_only",  # No deletions
     },
-    
+
     "determinism": {
         "deterministic": True,          # Same input → same output
         "seed_reproducible": True,      # LLM with fixed seed
@@ -136,43 +140,45 @@ MEMORY_EXTRACTION_JOB = {
 ### Memory Event → TDOS Ledger Entry
 
 **Memory Event**:
+
 ```json
 {
-    "event_type": "MEMORY_ADDED",
-    "timestamp": "2025-01-15T10:30:45.123Z",
-    "subject_id": "USER:246030816692404234",
-    "tenant_id": "TENANT:BreezeCrew",
-    "invoker_subject_id": "CHATBOT:abby_v2.1",
-    "operation": {
-        "action": "add_fact",
-        "memory_content": {
-            "fact": "Loves fettuccini",
-            "confidence": 0.85,
-            "type": "USER_FACT"
-        }
-    },
-    "result": {
-        "success": true,
-        "affected_documents": 1
+  "event_type": "MEMORY_ADDED",
+  "timestamp": "2025-01-15T10:30:45.123Z",
+  "subject_id": "USER:246030816692404234",
+  "tenant_id": "TENANT:BreezeCrew",
+  "invoker_subject_id": "CHATBOT:abby_v2.1",
+  "operation": {
+    "action": "add_fact",
+    "memory_content": {
+      "fact": "Loves fettuccini",
+      "confidence": 0.85,
+      "type": "USER_FACT"
     }
+  },
+  "result": {
+    "success": true,
+    "affected_documents": 1
+  }
 }
 ```
 
 **Maps to TDOS Ledger Entry**:
+
 ```
 TDOS Ledger Entry: {
     entry_id: "ledger_abc123def456",
     timestamp: 2025-01-15T10:30:45.123Z,
-    
+
     # Subject & Tenant
     subject: USER:246030816692404234,
     tenant: TENANT:BreezeCrew,
-    
+
     # Job Context
     job_id: "job_abc123",
     job_name: "extract_memorable_facts:v1.0",
     invoker: CHATBOT:abby_v2.1,
-    
+
     # Operation
     operation: "MEMORY_ADDED",
     data: {
@@ -180,7 +186,7 @@ TDOS Ledger Entry: {
         content: "Loves fettuccini",
         confidence: 0.85
     },
-    
+
     # Result
     status: "SUCCESS",
     audit_trail: {
@@ -188,7 +194,7 @@ TDOS Ledger Entry: {
         before_state: {...},
         after_state: {...},
     },
-    
+
     # Provenance
     signed_by: "CHATBOT:abby_v2.1",
     version: 1,
@@ -202,6 +208,7 @@ TDOS Ledger Entry: {
 ### TDOS Capability Gating
 
 **Memory Write Permissions**:
+
 ```python
 MEMORY_PERMISSIONS = {
     "memory:read:{subject_id}": {
@@ -209,21 +216,21 @@ MEMORY_PERMISSIONS = {
         "required_for": ["use_in_prompt"],
         "scoped_by": ["tenant_id"]
     },
-    
+
     "memory:write:{subject_id}": {
         "allows": ["add_memorable_fact", "extract_facts"],
         "required_for": ["store_new_memory"],
         "scoped_by": ["tenant_id"],
         "gated_by": "job:extract_memorable_facts:v1.0"
     },
-    
+
     "memory:decay:{subject_id}": {
         "allows": ["apply_confidence_decay"],
         "required_for": ["auto_expire_old_facts"],
         "scoped_by": ["tenant_id"],
         "gated_by": "system:decay_scheduler"
     },
-    
+
     "tenant:access:{tenant_id}": {
         "allows": ["cross_subject_access_in_tenant"],
         "required_for": ["bulk_memory_analysis"],
@@ -233,6 +240,7 @@ MEMORY_PERMISSIONS = {
 ```
 
 **Check Permissions** (before operation):
+
 ```python
 def check_memory_permission(
     invoker: str,                      # "CHATBOT:abby_v2.1"
@@ -242,22 +250,22 @@ def check_memory_permission(
     job_context: dict                  # From TDOS kernel
 ) -> bool:
     """Verify invoker has permission for action."""
-    
+
     # Build required capability
     capability = f"memory:{action}:{subject_id}"
-    
+
     # Check TDOS capability
     if not kernel.has_capability(invoker, capability, tenant=tenant_id):
         log_denial(invoker, action, subject_id, tenant_id)
         return False
-    
+
     # Check job authorization
     if action == "add_fact":
         required_job = "extract_memorable_facts:v1.0"
         if job_context.get("job_name") != required_job:
             log_denial(invoker, action, job=job_context.get("job_name"))
             return False
-    
+
     return True
 ```
 
@@ -279,16 +287,16 @@ def extract_facts_deterministically(
     seed: int = 42                     # Fixed seed
 ) -> List[dict]:
     """Extract facts with reproducible results."""
-    
+
     response = openai.ChatCompletion.create(
         model="gpt-4-turbo",
         temperature=0.3,                # Low temperature (more deterministic)
         seed=seed,                      # Fixed seed for reproducibility
         prompt=EXTRACTION_PROMPT.format(summary=summary),
     )
-    
+
     facts = parse_extraction(response)
-    
+
     # Audit: Record seed used
     log_event({
         "operation": "extract_facts",
@@ -297,7 +305,7 @@ def extract_facts_deterministically(
         "facts_extracted": len(facts),
         "extraction_hash": hash(str(facts))
     })
-    
+
     return facts
 ```
 
@@ -342,12 +350,12 @@ async def add_memorable_fact_with_audit(
     storage: MemoryStorage
 ) -> dict:
     """Add fact with complete audit trail."""
-    
+
     # Pre-audit: Log request
     pre_state = storage.get_profile(subject_id, tenant_id)
-    
+
     fact_id = ObjectId()
-    
+
     # Write fact
     success = storage.add_fact(
         subject_id=subject_id,
@@ -357,7 +365,7 @@ async def add_memorable_fact_with_audit(
         fact_type=fact_type,
         confidence=confidence
     )
-    
+
     if not success:
         # Log failure
         storage.log_event({
@@ -369,10 +377,10 @@ async def add_memorable_fact_with_audit(
             "reason": "write_failed"
         })
         return {"success": False}
-    
+
     # Post-audit: Log success
     post_state = storage.get_profile(subject_id, tenant_id)
-    
+
     event = {
         "event_type": "MEMORY_ADDED",
         "timestamp": datetime.utcnow(),
@@ -398,10 +406,10 @@ async def add_memorable_fact_with_audit(
         },
         "success": True
     }
-    
+
     # Log to TDOS ledger
     storage.log_event(event)
-    
+
     # Also log to kernel ledger
     kernel.ledger.append_entry(
         operation="MEMORY_ADDED",
@@ -410,7 +418,7 @@ async def add_memorable_fact_with_audit(
         job_id=job_context.get("job_id"),
         data=event
     )
-    
+
     return {
         "success": True,
         "fact_id": str(fact_id),
@@ -436,32 +444,32 @@ db.discord_profiles.update_one(
 # ✅ CORRECT: Mark as inactive via decay
 def apply_confidence_decay(subject_id, tenant_id):
     """Age-based decay, never delete."""
-    
+
     profile = db.find_one(subject_id, tenant_id)
-    
+
     for fact in profile["memorable_facts"]:
         age_days = (now - fact["added_at"]).days
-        
+
         # Check decay window (don't delete)
         if fact["type"] == "USER_FACT" and age_days > 30:
             # Mark as inactive, keep in DB for audit trail
             fact["active"] = False
         # ... similar for patterns, narratives
-    
+
     # Update profile (re-read to include new facts)
     profile_fresh = db.find_one(subject_id, tenant_id)  # ← Re-read
     for fact in profile_fresh["memorable_facts"]:
         age_days = (now - fact["added_at"]).days
         if should_decay(fact, age_days):
             fact["active"] = False
-    
+
     # Write with audit trail
     db.update_one(
         {"user_id": subject_id, "guild_id": tenant_id},
         {"$set": {"creative_profile.memorable_facts": profile_fresh["memorable_facts"]}},
         write_concern=WriteConcern(w="majority", j=True)
     )
-    
+
     # Log decay operation
     log_decay_event(subject_id, tenant_id, facts_decayed=count)
 ```
@@ -491,10 +499,7 @@ profile = db.discord_profiles.find_one({"user_id": user_id})
 
 ```javascript
 // Create index enforcing tenant scope
-db.discord_profiles.createIndex(
-    {user_id: 1, guild_id: 1},
-    {unique: true}
-)
+db.discord_profiles.createIndex({ user_id: 1, guild_id: 1 }, { unique: true });
 
 // This prevents duplicate (user, guild) pairs
 // Ensures strict subject+tenant identity
@@ -505,32 +510,32 @@ db.discord_profiles.createIndex(
 ```python
 class TenantSafeStorage:
     """Wrapper ensuring all queries are tenant-scoped."""
-    
+
     def find_profile(self, user_id, guild_id):
         """Get profile (guild_id required)."""
         if not guild_id:
             raise ValueError("guild_id (tenant) required")
-        
+
         return db.discord_profiles.find_one({
             "user_id": user_id,
             "guild_id": guild_id         # ← Enforced
         })
-    
+
     def find_events(self, user_id, guild_id, limit=50):
         """Get events (guild_id required)."""
         if not guild_id:
             raise ValueError("guild_id (tenant) required")
-        
+
         return list(db.memory_events.find({
             "subject_id": f"USER:{user_id}",
             "tenant_id": f"TENANT:{guild_id}"  # ← Enforced
         }).limit(limit))
-    
+
     def add_fact(self, user_id, guild_id, fact, confidence):
         """Add fact (guild_id required)."""
         if not guild_id:
             raise ValueError("guild_id (tenant) required")
-        
+
         return db.discord_profiles.update_one(
             {"user_id": user_id, "guild_id": guild_id},  # ← Scoped
             {"$push": {"creative_profile.memorable_facts": {...}}}
@@ -579,42 +584,49 @@ class TenantSafeStorage:
 ## Integration Checklist
 
 ### Phase 1: Foundation
+
 - [ ] Deploy memory system to TDOS /agents/memory/
 - [ ] Configure MongoDB connection (use TDOS secrets manager)
 - [ ] Create indexes
 - [ ] Verify determinism with seed-based tests
 
 ### Phase 2: Job Registration
+
 - [ ] Register extract_memorable_facts job with kernel
 - [ ] Register apply_confidence_decay job
 - [ ] Register refresh_envelope_cache job
 - [ ] Define job dependencies
 
 ### Phase 3: Permission Setup
+
 - [ ] Define memory capabilities in TDOS RBAC
 - [ ] Configure job→capability mappings
 - [ ] Set up invoker authentication
 - [ ] Test permission gating
 
 ### Phase 4: Ledger Integration
+
 - [ ] Map memory events to ledger schema
 - [ ] Configure ledger append (verify immutability)
 - [ ] Audit event logging
 - [ ] Test ledger query performance
 
 ### Phase 5: Multi-Adapter Testing
+
 - [ ] Test with Discord adapter
 - [ ] Test with Slack adapter
 - [ ] Verify tenant isolation across adapters
 - [ ] Test cross-adapter memory sharing (controlled)
 
 ### Phase 6: Monitoring & Observability
+
 - [ ] Configure metrics export (Prometheus)
 - [ ] Set up logs aggregation
 - [ ] Create dashboards (Grafana)
 - [ ] Define alerting rules
 
 ### Phase 7: Production Hardening
+
 - [ ] Load testing (10k+ subjects)
 - [ ] Decay scheduler reliability
 - [ ] Cache invalidation robustness
@@ -633,16 +645,16 @@ from memory_system.storage import MemoryStorage
 
 class ExtractMemorableFactsJob(Job):
     """Extract facts from conversation summary."""
-    
+
     name = "extract_memorable_facts"
     version = "1.0"
     description = "Extract memorable facts from conversation"
-    
+
     required_capabilities = [
         "memory:write:{subject_id}",
         "tenant:access:{tenant_id}"
     ]
-    
+
     def execute(
         self,
         summary: str,
@@ -651,7 +663,7 @@ class ExtractMemorableFactsJob(Job):
         context: dict
     ) -> dict:
         """Execute fact extraction."""
-        
+
         # Check permissions
         if not self.check_capabilities(context["invoker"], subject, tenant):
             self.ledger.log_denied_operation(
@@ -661,7 +673,7 @@ class ExtractMemorableFactsJob(Job):
                 reason="insufficient_capabilities"
             )
             return {"success": False, "error": "Permission denied"}
-        
+
         # Extract facts (deterministic)
         storage = MemoryStorage()
         facts = extract_memorable_facts(
@@ -671,7 +683,7 @@ class ExtractMemorableFactsJob(Job):
             storage=storage,
             seed=context.get("seed", 42)  # Deterministic
         )
-        
+
         # Log to ledger
         self.ledger.append_entry(
             operation="MEMORY_EXTRACTION",
@@ -685,7 +697,7 @@ class ExtractMemorableFactsJob(Job):
                 "seed": context.get("seed", 42)
             }
         )
-        
+
         return {
             "success": True,
             "facts": facts,
@@ -698,6 +710,7 @@ class ExtractMemorableFactsJob(Job):
 ## Migration Path
 
 ### Step 1: Enable Memory System
+
 ```python
 # In TDOS config
 AGENTS = {
@@ -711,6 +724,7 @@ AGENTS = {
 ```
 
 ### Step 2: Register Jobs
+
 ```python
 # In TDOS job registry
 JOBS = {
@@ -729,6 +743,7 @@ JOBS = {
 ```
 
 ### Step 3: Enable in Adapters
+
 ```python
 # In Discord adapter
 MEMORY_CONFIG = {
@@ -751,6 +766,7 @@ MEMORY_CONFIG = {
 - Query latency: <50 ms
 
 **Monitoring** (via TDOS metrics):
+
 ```prometheus
 memory_envelope_load_ms{subject_id="...", tenant_id="..."}
 memory_extraction_duration_ms{job_id="..."}
@@ -788,4 +804,3 @@ memory_storage_size_bytes{tenant_id="..."}
 5. **Temporal queries**: "What did I know about this subject on date X?"
 6. **Fact versioning**: Track how confidence changed over time
 7. **Consensus mechanism**: Multiple subjects vote on shared narratives
-

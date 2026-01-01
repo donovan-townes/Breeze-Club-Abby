@@ -25,7 +25,7 @@ MemoryEnvelope = {
         "subject_type": str,            # "USER"
         "display_name": str,            # "Z8phyR" (for logging)
     },
-    
+
     # [Relational Intelligence] What do we know about them?
     "relational": {
         "memorable_facts": [
@@ -64,7 +64,7 @@ MemoryEnvelope = {
             "explanation_style": str,   # "step-by-step", "conceptual", "examples"
         }
     },
-    
+
     # [Recent Context] What happened in this session?
     "recent_context": {
         "session_id": str,              # "28233af0-e244-49f8-b593..."
@@ -73,7 +73,7 @@ MemoryEnvelope = {
         "topics_discussed": [str],      # ["fettuccini", "music production"]
         "tone": str,                    # "playful", "serious", "casual"
     },
-    
+
     # [Constraints] What are the rules for this subject?
     "constraints": {
         "memory_enabled": bool,         # Can we learn about them?
@@ -82,7 +82,7 @@ MemoryEnvelope = {
         "anonymize_dates": bool,        # Blur timestamps?
         "delete_after_days": int,       # Auto-delete (GDPR)
     },
-    
+
     # [Metadata] System info
     "metadata": {
         "created_at": str,              # Envelope creation timestamp
@@ -105,17 +105,17 @@ def get_memory_envelope(
     skip_cache: bool = False
 ) -> MemoryEnvelope:
     """Retrieve or create memory envelope for subject."""
-    
+
     # Check cache first
     if cached := cache.get(f"{subject_id}:{tenant_id}"):
         return cached
-    
+
     # Load from MongoDB
     profile = db.discord_profiles.find_one({
         "user_id": subject_id,
         "guild_id": tenant_id
     })
-    
+
     # Build envelope
     envelope = MemoryEnvelope(
         identity={
@@ -135,10 +135,10 @@ def get_memory_envelope(
             # ... from user preferences
         }
     )
-    
+
     # Cache with TTL
     cache.set(f"{subject_id}:{tenant_id}", envelope, ttl=900)
-    
+
     return envelope
 ```
 
@@ -149,10 +149,10 @@ def apply_confidence_decay(facts, decay_days=30):
     """Filter facts by age and decay window."""
     now = datetime.utcnow()
     active_facts = []
-    
+
     for fact in facts:
         age_days = (now - fact.added_at).days
-        
+
         # Check decay window
         if fact.type == "USER_FACT" and age_days > 30:
             fact.active = False
@@ -163,9 +163,9 @@ def apply_confidence_decay(facts, decay_days=30):
         if fact.type == "SHARED_NARRATIVE" and age_days > 7:
             fact.active = False
             continue
-        
+
         active_facts.append(fact)
-    
+
     return active_facts
 ```
 
@@ -179,35 +179,35 @@ def format_envelope_for_llm(
     include_narratives: bool = True
 ) -> str:
     """Format envelope into concise LLM-friendly text."""
-    
+
     lines = []
-    
+
     # Identity (brief)
     lines.append(f"Subject: {envelope.identity['display_name']}")
-    
+
     # Facts (highest priority)
     lines.append("\nKnown Facts:")
     for fact in envelope.relational['memorable_facts'][:max_facts]:
         lines.append(f"  - {fact['fact']}")
-    
+
     # Patterns (marked as tendencies)
     if include_patterns:
         lines.append("\nObserved Patterns:")
         for pattern in envelope.relational['patterns'][:3]:
             lines.append(f"  - Often {pattern['pattern']}")
-    
+
     # Preferences
     if envelope.relational['preferences']:
         lines.append("\nPreferences:")
         for key, val in envelope.relational['preferences'].items():
             lines.append(f"  - {key}: {val}")
-    
+
     # Narratives (marked as warmth)
     if include_narratives:
         lines.append("\nShared Context:")
         for narrative in envelope.relational['narratives'][:2]:
             lines.append(f"  - {narrative['narrative']}")
-    
+
     return "\n".join(lines)
 ```
 
@@ -260,15 +260,19 @@ response = llm.chat(
 ### Example Response
 
 **Bad**:
+
 ```
 You're advanced in music production, so here's a complex implementation...
 ```
+
 (Pattern treated as fact; no user confirmation)
 
 **Good**:
+
 ```
 You mentioned enjoying FL Studio optimization. Here's an approach—I can go deeper if you'd like.
 ```
+
 (Fact-grounded; offers flexibility)
 
 ---
@@ -293,11 +297,13 @@ envelope = get_memory_envelope(subject_id, tenant_id, skip_cache=True)
 ```
 
 **Benefits**:
+
 - Millisecond retrieval
 - Reduced MongoDB load
 - Fast prompt injection
 
 **Tradeoff**:
+
 - New facts take up to 15 minutes to appear
 - Acceptable: facts are low-priority context
 
@@ -313,22 +319,23 @@ envelope = get_memory_envelope(subject_id, tenant_id, skip_cache=True)
 constraints = {
     # Can we learn about this subject at all?
     "memory_enabled": True,
-    
+
     # Can we aggregate patterns?
     "learn_patterns": True,
-    
+
     # Which systems can access this envelope?
     "share_with": ["discord_adapter"],  # Don't share with unknown agents
-    
+
     # Privacy: blur dates?
     "anonymize_dates": False,
-    
+
     # GDPR: auto-delete after N days
     "delete_after_days": None,
 }
 ```
 
 **Enforcement**:
+
 - Check constraints before add_memorable_fact()
 - Check constraints before returning envelope
 - Respect opt-outs in all downstream logic
@@ -381,20 +388,23 @@ envelope = pickle.loads(cache.get(key))
 **Optimization Tips**:
 
 1. **Limit facts in envelope**:
+
    ```python
    format_envelope_for_llm(envelope, max_facts=5)
    ```
 
 2. **Skip unnecessary sections**:
+
    ```python
    format_envelope_for_llm(envelope, include_narratives=False)
    ```
 
 3. **Use cache religiously**:
+
    ```python
    # ✅ Good: will hit cache 99% of time
    envelope = get_memory_envelope(user_id)
-   
+
    # ❌ Bad: always queries DB
    envelope = get_memory_envelope(user_id, skip_cache=True)
    ```
@@ -445,6 +455,7 @@ Bridge their needs thoughtfully.
 **Current Version**: 1.0
 
 **Version Changes**:
+
 - v1.0 → v1.1: Add "constraints" field (backward compatible)
 - v1.0 → v2.0: Change memory typing system (breaking change)
 
@@ -469,6 +480,7 @@ def validate_envelope(envelope):
 ## Testing the Pattern
 
 **Unit Tests**:
+
 - [ ] Envelope created correctly
 - [ ] Decay filters facts by age
 - [ ] Formatting produces valid LLM-friendly text
@@ -477,6 +489,7 @@ def validate_envelope(envelope):
 - [ ] Constraints respected
 
 **Integration Tests**:
+
 - [ ] Envelope loads from MongoDB
 - [ ] Envelope serializes/deserializes
 - [ ] Cache hit/miss behavior correct
@@ -489,13 +502,12 @@ def test_envelope_isolation():
     """Confirm no cross-subject leakage."""
     env1 = get_memory_envelope("USER:alice", "TENANT:breeze")
     env2 = get_memory_envelope("USER:bob", "TENANT:breeze")
-    
+
     assert env1["identity"]["subject_id"] == "USER:alice"
     assert env2["identity"]["subject_id"] == "USER:bob"
-    
+
     # Both in same tenant, but subject_id strictly separated
     assert env1 != env2
     assert len(env1["relational"]["memorable_facts"]) > 0
     assert len(env2["relational"]["memorable_facts"]) == 0  # Different facts
 ```
-

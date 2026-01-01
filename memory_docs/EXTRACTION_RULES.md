@@ -87,13 +87,13 @@ Extract:
     {
       "text": "Prefers step-by-step explanations",
       "type": "USER_PATTERN",
-      "confidence": 0.80,
+      "confidence": 0.8,
       "reasoning": "Asked for 'step by step' breakdown twice in conversation"
     },
     {
       "text": "Been chatting since 2019",
       "type": "SHARED_NARRATIVE",
-      "confidence": 0.90,
+      "confidence": 0.9,
       "reasoning": "User mentioned 'we've been talking for like 5-6 years'"
     }
   ]
@@ -105,6 +105,7 @@ Extract:
 ## Type Rules & Thresholds
 
 ### USER_FACT
+
 **Definition**: Explicit, factual statement about the user (preferences, experiences, facts)
 **Confidence Threshold**: ≥ 0.80
 **Decay Window**: 30 days
@@ -112,6 +113,7 @@ Extract:
 **Example**: "Loves fettuccini", "Works in radiology", "Plays guitar"
 
 **Extraction Rules**:
+
 - ✅ User said it explicitly
 - ✅ Current/ongoing preference
 - ✅ Factual claim (not opinion)
@@ -120,6 +122,7 @@ Extract:
 - ❌ Opinion masquerading as fact ("best pasta")
 
 **Confidence Scoring**:
+
 - 0.95: "I love X" (explicit, repeated)
 - 0.85: "My favorite is X" (clear preference)
 - 0.75: "I really like X" (enthusiastic but singular mention)
@@ -129,6 +132,7 @@ Extract:
 ---
 
 ### USER_PATTERN
+
 **Definition**: Inferred behavior or tendency (how they communicate, what they prefer)
 **Confidence Threshold**: ≥ 0.75
 **Decay Window**: 14 days
@@ -136,6 +140,7 @@ Extract:
 **Example**: "Prefers detailed explanations", "Asks questions before diving in", "Uses technical language"
 
 **Extraction Rules**:
+
 - ✅ Observable from communication style
 - ✅ Consistent across multiple messages
 - ✅ Behavioral tendency (not emotional state)
@@ -144,6 +149,7 @@ Extract:
 - ❌ Ungrounded speculation ("probably likes X")
 
 **Confidence Scoring**:
+
 - 0.90: Pattern observed 3+ times, clear consistency
 - 0.80: Pattern observed 2 times, strong signal
 - 0.70: Pattern inferred from single detailed interaction
@@ -151,6 +157,7 @@ Extract:
 - <0.75: Reject (below threshold) or log as proposal
 
 **Confidence Gate Example**:
+
 ```python
 if confidence >= 0.80:
     # Apply pattern automatically
@@ -166,6 +173,7 @@ else:
 ---
 
 ### SHARED_NARRATIVE
+
 **Definition**: Shared context, continuity, or warm context (not factual authority)
 **Confidence Threshold**: ≥ 0.60
 **Decay Window**: 7 days
@@ -173,6 +181,7 @@ else:
 **Example**: "Been chatting since 2019", "Remember our conversation about music?", "You helped me with that project"
 
 **Extraction Rules**:
+
 - ✅ Shared memory or experience
 - ✅ Continuity signal ("remember when...")
 - ✅ Connection context ("we've worked together")
@@ -181,6 +190,7 @@ else:
 - ❌ Binding future behavior ("you promised")
 
 **Confidence Scoring**:
+
 - 0.95: Confirmed shared history (explicit mention with date)
 - 0.85: Strong narrative continuity (clear reference to past)
 - 0.70: Implied shared context (context clue)
@@ -188,6 +198,7 @@ else:
 - <0.60: Too uncertain, discard
 
 **Warmth Usage Example**:
+
 ```python
 # ✅ Good: narrative as warmth
 "Since we've been chatting since 2019, I remember you love a good debate."
@@ -207,24 +218,24 @@ else:
 ```python
 def validate_fact_against_summary(fact: str, summary: str) -> bool:
     """Confirm fact is grounded in summary."""
-    
+
     # Step 1: Exact substring match
     if fact in summary or fact.lower() in summary.lower():
         return True
-    
+
     # Step 2: Key phrase matching
     key_phrases = extract_key_phrases(fact)
     if all_phrases_in_summary(key_phrases, summary):
         return True
-    
+
     # Step 3: Semantic similarity (embedding-based)
     fact_embedding = embed(fact)
     summary_embedding = embed(summary)
-    
+
     similarity = cosine_similarity(fact_embedding, summary_embedding)
     if similarity > 0.85:  # High confidence match
         return True
-    
+
     # Step 4: Reject if not grounded
     return False
 ```
@@ -232,6 +243,7 @@ def validate_fact_against_summary(fact: str, summary: str) -> bool:
 **Validation Examples**:
 
 ✅ **PASS**:
+
 ```
 Summary: "User said: I absolutely love fettuccini pasta, especially with alfredo sauce."
 Fact: "Loves fettuccini"
@@ -239,6 +251,7 @@ Validation: Substring "love fettuccini" found → PASS
 ```
 
 ✅ **PASS**:
+
 ```
 Summary: "Asked for step-by-step explanation of the algorithm."
 Pattern: "Prefers step-by-step explanations"
@@ -246,6 +259,7 @@ Validation: Key phrases "step-by-step" + "explanation" found → PASS
 ```
 
 ❌ **FAIL**:
+
 ```
 Summary: "We discussed fettuccini briefly."
 Fact: "Absolutely loves fettuccini pasta with truffle oil"
@@ -254,6 +268,7 @@ Validation: "loves" not in summary, "truffle oil" not mentioned → FAIL
 ```
 
 ❌ **FAIL**:
+
 ```
 Summary: "User mentioned liking pasta."
 Fact: "Loves fettuccini specifically"
@@ -270,6 +285,7 @@ Validation: "fettuccini" not mentioned in summary → FAIL
 **Defense Layers**:
 
 ### Layer 1: Validation Against Summary
+
 ```python
 # Every extracted fact must pass validation
 if not validate_fact_against_summary(fact, summary):
@@ -277,6 +293,7 @@ if not validate_fact_against_summary(fact, summary):
 ```
 
 ### Layer 2: Confidence Gating
+
 ```python
 # Only store facts above confidence threshold
 if fact.confidence < confidence_threshold:
@@ -284,6 +301,7 @@ if fact.confidence < confidence_threshold:
 ```
 
 ### Layer 3: Type Rule Enforcement
+
 ```python
 # Enforce type-specific rules
 if fact.type == "USER_FACT" and fact.confidence < 0.80:
@@ -291,6 +309,7 @@ if fact.type == "USER_FACT" and fact.confidence < 0.80:
 ```
 
 ### Layer 4: Semantic Sanity Check
+
 ```python
 # Reject obviously nonsensical extractions
 if is_nonsensical(fact):
@@ -327,9 +346,9 @@ def score_confidence(
     summary: str
 ) -> float:
     """Compute confidence score (0.0–1.0)."""
-    
+
     score = 0.0
-    
+
     # Factor 1: Explicit mention (0.0–0.3)
     if is_exact_quote(extraction["text"], summary):
         score += 0.30
@@ -337,7 +356,7 @@ def score_confidence(
         score += 0.20
     elif semantic_similarity(extraction["text"], summary) > 0.85:
         score += 0.10
-    
+
     # Factor 2: Repetition (0.0–0.2)
     repetition_count = count_mentions(extraction["text"], summary)
     if repetition_count >= 3:
@@ -346,14 +365,14 @@ def score_confidence(
         score += 0.10
     elif repetition_count == 1:
         score += 0.00
-    
+
     # Factor 3: Consistency with known facts (0.0–0.2)
     known_facts = fetch_subject_facts()
     if is_consistent_with_known(extraction["text"], known_facts):
         score += 0.20
     elif contradicts_known(extraction["text"], known_facts):
         score -= 0.25  # Downgrade contradictions
-    
+
     # Factor 4: Type credibility (0.0–0.3)
     if extraction["type"] == "USER_FACT" and extraction["explicit"]:
         score += 0.30
@@ -361,21 +380,21 @@ def score_confidence(
         score += 0.20
     elif extraction["type"] == "SHARED_NARRATIVE" and contextual_clue_found():
         score += 0.15
-    
+
     # Clamp to valid range
     return max(0.0, min(1.0, score))
 ```
 
 **Confidence Score Table**:
 
-| Score | Meaning | Action | Example |
-|-------|---------|--------|---------|
-| 0.95–1.0 | Explicit, repeated | Store immediately | "I love fettuccini" (repeated 2x) |
-| 0.85–0.94 | Explicit, clear | Store | "My favorite is X" (said once, clear) |
-| 0.80–0.84 | Clear but singular | Store (USER_FACT threshold) | "I really like X" (said clearly once) |
-| 0.75–0.79 | Inferred pattern | Log as proposal (below USER_FACT, at PATTERN threshold) | "Prefers detailed explanations" |
-| 0.60–0.74 | Weak signal | Log as narrative only | "Seems interested in X" |
-| <0.60 | Uncertain | Reject | "Might like X?" |
+| Score     | Meaning            | Action                                                  | Example                               |
+| --------- | ------------------ | ------------------------------------------------------- | ------------------------------------- |
+| 0.95–1.0  | Explicit, repeated | Store immediately                                       | "I love fettuccini" (repeated 2x)     |
+| 0.85–0.94 | Explicit, clear    | Store                                                   | "My favorite is X" (said once, clear) |
+| 0.80–0.84 | Clear but singular | Store (USER_FACT threshold)                             | "I really like X" (said clearly once) |
+| 0.75–0.79 | Inferred pattern   | Log as proposal (below USER_FACT, at PATTERN threshold) | "Prefers detailed explanations"       |
+| 0.60–0.74 | Weak signal        | Log as narrative only                                   | "Seems interested in X"               |
+| <0.60     | Uncertain          | Reject                                                  | "Might like X?"                       |
 
 ---
 
@@ -385,7 +404,7 @@ def score_confidence(
 
 ```
 Is the user stating a preference/fact about themselves explicitly?
-├─ YES → Is confidence >= 0.80? 
+├─ YES → Is confidence >= 0.80?
 │        └─ YES → USER_FACT
 │        └─ NO  → below threshold, reject
 ├─ NO → Is this an inferred behavioral pattern?
@@ -405,12 +424,14 @@ Is the user stating a preference/fact about themselves explicitly?
 ### Example 1: Strong Fact
 
 **Summary**:
+
 ```
-User: "I absolutely love fettuccini. Seriously, it's my favorite pasta. 
+User: "I absolutely love fettuccini. Seriously, it's my favorite pasta.
 The creamy alfredo sauce is just perfect. I make it at home all the time."
 ```
 
 **Extraction Process**:
+
 ```json
 {
   "text": "Loves fettuccini with alfredo sauce",
@@ -419,9 +440,9 @@ The creamy alfredo sauce is just perfect. I make it at home all the time."
   "reasoning": "Explicitly stated 'absolutely love', repeated preference",
   "validation": "PASS (direct quote + repetition)",
   "scoring": {
-    "exact_quote": 0.30,
-    "repetition": 0.20,
-    "consistency": 0.20,
+    "exact_quote": 0.3,
+    "repetition": 0.2,
+    "consistency": 0.2,
     "type_credibility": 0.25,
     "total": 0.95
   }
@@ -435,6 +456,7 @@ The creamy alfredo sauce is just perfect. I make it at home all the time."
 ### Example 2: Inferred Pattern
 
 **Summary**:
+
 ```
 User asked: "Can you break this down step by step?"
 Later: "Could you walk me through the algorithm step by step?"
@@ -442,6 +464,7 @@ Requested detailed explanation with examples.
 ```
 
 **Extraction Process**:
+
 ```json
 {
   "text": "Prefers step-by-step explanations",
@@ -450,9 +473,9 @@ Requested detailed explanation with examples.
   "reasoning": "Requested 'step by step' twice, clear communication preference",
   "validation": "PASS (key phrases present, repetition evident)",
   "scoring": {
-    "key_phrases": 0.20,
-    "repetition": 0.10,
-    "consistency": 0.20,
+    "key_phrases": 0.2,
+    "repetition": 0.1,
+    "consistency": 0.2,
     "type_credibility": 0.35,
     "total": 0.85
   }
@@ -466,11 +489,13 @@ Requested detailed explanation with examples.
 ### Example 3: Below-Threshold Pattern
 
 **Summary**:
+
 ```
 User asked: "Can you explain this concept?"
 ```
 
 **Extraction Process**:
+
 ```json
 {
   "text": "Prefers conceptual explanations",
@@ -479,9 +504,9 @@ User asked: "Can you explain this concept?"
   "reasoning": "Asked for explanation once, not enough repetition",
   "validation": "PASS (concept mentioned)",
   "scoring": {
-    "key_phrases": 0.20,
-    "repetition": 0.00,  // Only once
-    "consistency": 0.20,
+    "key_phrases": 0.2,
+    "repetition": 0.0, // Only once
+    "consistency": 0.2,
     "type_credibility": 0.25,
     "total": 0.65
   }
@@ -496,21 +521,24 @@ User asked: "Can you explain this concept?"
 ### Example 4: Hallucination Attempt
 
 **Summary**:
+
 ```
 We discussed music production in FL Studio.
 ```
 
 **LLM Extracts**:
+
 ```json
 {
   "text": "Works as a professional FL Studio producer",
   "type": "USER_FACT",
-  "confidence": 0.70,
+  "confidence": 0.7,
   "reasoning": "Discussed FL Studio extensively"
 }
 ```
 
 **Validation**:
+
 ```
 is_exact_quote("Works as professional FL Studio producer", summary) → FALSE
 key_phrases_present(...) → FALSE ("professional" not mentioned)
@@ -527,6 +555,7 @@ confidence_adjusted: 0.70 * 0.10/0.30 = 0.23
 ## Rejection Logging
 
 **Why Log Rejections?**:
+
 1. Understand what LLM tried to extract
 2. Spot patterns in extraction failures
 3. Refine prompts based on rejection reasons
@@ -561,7 +590,7 @@ confidence_adjusted: 0.70 * 0.10/0.30 = 0.23
   - Not grounded: 8 (8%)
   - Hallucination: 3 (3%)
   - Accepted: 65 (65%)
-  
+
 [TRENDING] Most common rejection type:
   - USER_PATTERN with confidence 0.65–0.74 (needs 0.75+)
   - Recommendation: Refine extraction prompt to be stricter on pattern confidence
@@ -572,6 +601,7 @@ confidence_adjusted: 0.70 * 0.10/0.30 = 0.23
 ## Testing Extraction Quality
 
 **Unit Tests**:
+
 - [ ] Exact quote validation works
 - [ ] Key phrase matching works
 - [ ] Semantic similarity computed correctly
@@ -580,6 +610,7 @@ confidence_adjusted: 0.70 * 0.10/0.30 = 0.23
 - [ ] Hallucinations rejected
 
 **Integration Tests**:
+
 - [ ] End-to-end extraction pipeline
 - [ ] Facts stored in MongoDB
 - [ ] Cache invalidated after write
@@ -592,7 +623,7 @@ confidence_adjusted: 0.70 * 0.10/0.30 = 0.23
 def test_extraction_hallucination_rejection():
     """Confirm hallucinations are rejected."""
     summary = "We discussed music production."
-    
+
     # Simulate LLM extraction
     extraction = {
         "text": "Works as professional producer",
@@ -600,15 +631,15 @@ def test_extraction_hallucination_rejection():
         "confidence": 0.70,
         "explicit": False
     }
-    
+
     # Validate
     is_valid = validate_fact_against_summary(extraction["text"], summary)
     assert not is_valid, "Hallucination should be rejected"
-    
+
     # Score confidence
     score = score_confidence(extraction, summary)
     assert score < 0.80, "Confidence should be lowered by failed validation"
-    
+
     # Store should be rejected
     with pytest.raises(RejectionError):
         store_fact(extraction)
@@ -619,4 +650,3 @@ def test_extraction_hallucination_rejection():
 ## Confidence Decay (Separate Document)
 
 Confidence naturally decays over time. See [ARCHITECTURE.md](ARCHITECTURE.md#decay-rules) for decay windows and application logic.
-

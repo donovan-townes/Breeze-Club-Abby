@@ -133,6 +133,7 @@ def get_memory_envelope(
 ```
 
 **Example**:
+
 ```python
 envelope = get_memory_envelope(
     subject_id="USER:246030816692404234",
@@ -158,6 +159,7 @@ def format_envelope_for_llm(
 ```
 
 **Example**:
+
 ```python
 context = format_envelope_for_llm(
     envelope=envelope,
@@ -169,11 +171,11 @@ context = format_envelope_for_llm(
 print(context)
 # Output:
 # Subject: Z8phyR
-# 
+#
 # Known Facts:
 #   - Loves fettuccini
 #   - Works in radiology
-# 
+#
 # Observed Patterns:
 #   - Prefers detailed explanations
 ```
@@ -195,6 +197,7 @@ def extract_memorable_facts(
 ```
 
 **Example**:
+
 ```python
 summary = """
 User said they love fettuccini pasta.
@@ -236,6 +239,7 @@ def add_memorable_fact(
 ```
 
 **Example**:
+
 ```python
 added = add_memorable_fact(
     subject_id="USER:246030816692404234",
@@ -280,6 +284,7 @@ def invalidate_cache(
 ```
 
 **Example**:
+
 ```python
 # After manual profile update
 invalidate_cache("USER:246030816692404234", "TENANT:BreezeCrew")
@@ -296,13 +301,13 @@ invalidate_cache("USER:246030816692404234", "TENANT:BreezeCrew")
 ```python
 async def handle_message(message, user_id, guild_id):
     """Process message and extract facts."""
-    
+
     # Chat
     response = await chatbot.respond(message)
-    
+
     # Build summary
     summary = f"{message.content}\n\nAssistant: {response}"
-    
+
     # Extract facts
     facts = extract_memorable_facts(
         summary=summary,
@@ -310,7 +315,7 @@ async def handle_message(message, user_id, guild_id):
         tenant_id=f"TENANT:{guild_id}",
         storage=storage
     )
-    
+
     if facts:
         logger.info(f"Stored {len(facts)} facts for user {user_id}")
 ```
@@ -320,30 +325,30 @@ async def handle_message(message, user_id, guild_id):
 ```python
 async def respond_with_memory(message, user_id, guild_id):
     """Load user memory and use for contextual response."""
-    
+
     # Load envelope
     envelope = get_memory_envelope(
         subject_id=f"USER:{user_id}",
         tenant_id=f"TENANT:{guild_id}",
         storage=storage
     )
-    
+
     # Format for prompt
     context = format_envelope_for_llm(envelope)
-    
+
     # Build system prompt
     system_prompt = f"""You are Abby, a helpful assistant.
 
 {context}
 
 Respond naturally, adapting to their preferences where appropriate."""
-    
+
     # Get response
     response = await llm.chat(
         system_prompt=system_prompt,
         messages=[{"role": "user", "content": message.content}]
     )
-    
+
     return response
 ```
 
@@ -352,10 +357,10 @@ Respond naturally, adapting to their preferences where appropriate."""
 ```python
 def analyze_guild_memory(guild_id):
     """Analyze memory patterns across guild members."""
-    
+
     # Find all profiles in guild
     profiles = storage.find_profiles(guild_id=guild_id)
-    
+
     # Aggregate statistics
     stats = {
         "total_users": len(profiles),
@@ -363,28 +368,28 @@ def analyze_guild_memory(guild_id):
         "most_common_patterns": [],
         "domains": []
     }
-    
+
     all_facts = []
     all_patterns = []
     all_domains = []
-    
+
     for profile in profiles:
         creative = profile["creative_profile"]
         all_facts.extend(creative["memorable_facts"])
         all_patterns.extend(creative["patterns"])
         all_domains.extend(creative["domains"])
-    
+
     stats["avg_facts_per_user"] = len(all_facts) / len(profiles)
-    
+
     # Count pattern occurrences
     from collections import Counter
     pattern_names = [p["pattern"] for p in all_patterns]
     stats["most_common_patterns"] = Counter(pattern_names).most_common(5)
-    
+
     # Domain summary
     domain_names = [d["domain"] for d in all_domains]
     stats["domains"] = Counter(domain_names).most_common(10)
-    
+
     return stats
 ```
 
@@ -393,9 +398,9 @@ def analyze_guild_memory(guild_id):
 ```python
 def export_user_memory(user_id, guild_id):
     """Export user's complete memory (GDPR compliance)."""
-    
+
     profile = storage.find_profile(user_id, guild_id)
-    
+
     export = {
         "user_id": user_id,
         "guild_id": guild_id,
@@ -408,12 +413,12 @@ def export_user_memory(user_id, guild_id):
         },
         "audit_trail": storage.get_events(user_id, guild_id, limit=100)
     }
-    
+
     # Save as JSON
     filename = f"memory_export_{user_id}_{guild_id}.json"
     with open(filename, "w") as f:
         json.dump(export, f, indent=2, default=str)
-    
+
     return filename
 ```
 
@@ -426,12 +431,12 @@ def export_user_memory(user_id, guild_id):
 ```python
 def test_memory_envelope():
     """Test envelope loading and formatting."""
-    
+
     # Setup
     storage = MemoryStorage()
     user_id = "USER:test_123"
     guild_id = "TENANT:test_guild"
-    
+
     # Add test fact
     add_memorable_fact(
         subject_id=user_id,
@@ -441,12 +446,12 @@ def test_memory_envelope():
         confidence=0.95,
         storage=storage
     )
-    
+
     # Load envelope
     envelope = get_memory_envelope(user_id, guild_id, storage)
     assert envelope is not None
     assert len(envelope.relational["memorable_facts"]) >= 1
-    
+
     # Format
     formatted = format_envelope_for_llm(envelope)
     assert "pasta" in formatted.lower()
@@ -458,13 +463,13 @@ def test_memory_envelope():
 @pytest.mark.integration
 async def test_full_extraction_pipeline():
     """Test end-to-end fact extraction."""
-    
+
     summary = """
-    User mentioned loving fettuccini pasta. 
+    User mentioned loving fettuccini pasta.
     Asked for step-by-step explanation.
     Said they've been using computers since 1999.
     """
-    
+
     # Extract
     facts = extract_memorable_facts(
         summary=summary,
@@ -472,12 +477,12 @@ async def test_full_extraction_pipeline():
         tenant_id="TENANT:test_guild",
         storage=storage
     )
-    
+
     # Verify
     assert len(facts) >= 2
     assert any("fettuccini" in f.get("fact", "") for f in facts)
     assert any("step" in f.get("pattern", "") for f in facts)
-    
+
     # Verify stored in MongoDB
     profile = storage.find_profile("test_123", "test_guild")
     assert len(profile["creative_profile"]["memorable_facts"]) > 0
@@ -496,24 +501,24 @@ config = MemoryConfig(
     # MongoDB
     mongo_uri="mongodb://localhost:27017",
     db_name="memory_db",
-    
+
     # LLM
     llm_model="gpt-4-turbo",
     extraction_temperature=0.3,        # Lower = more deterministic
-    
+
     # Cache
     cache_ttl_seconds=900,             # 15 minutes
-    
+
     # Decay
     fact_decay_days=30,
     pattern_decay_days=14,
     narrative_decay_days=7,
-    
+
     # Confidence thresholds
     fact_threshold=0.80,
     pattern_threshold=0.75,
     narrative_threshold=0.60,
-    
+
     # Logging
     verbose=False,
     log_rejections=True               # Log failed extractions?
@@ -529,6 +534,7 @@ storage = MemoryStorage(config=config)
 ### Issue: "MongoDB connection refused"
 
 **Solution**: Ensure MongoDB is running.
+
 ```bash
 # Windows
 mongod
@@ -540,11 +546,13 @@ python -c "from pymongo import MongoClient; MongoClient('mongodb://localhost:270
 ### Issue: "No facts found for user"
 
 **Possible Causes**:
+
 1. User is new (no facts extracted yet)
 2. Facts decayed away (older than 30 days)
 3. Cache is stale
 
 **Solutions**:
+
 ```python
 # Force fresh load
 envelope = get_memory_envelope(
@@ -562,6 +570,7 @@ facts = extract_memorable_facts(summary, "USER:123", "TENANT:guild", storage)
 ### Issue: "LLM extraction timeout"
 
 **Solution**: Increase LLM timeout or use summary shortening.
+
 ```python
 # Shorten summary before extraction
 short_summary = conversation_summary[:2000]  # Max 2000 chars
@@ -650,14 +659,14 @@ envelope = get_memory_envelope(subject_id="USER:123")  # No tenant!
 # Before allowing memory access, verify permissions
 def can_access_memory(requester_id, subject_id, guild_id):
     """Check if requester can access subject's memory."""
-    
+
     # Only allow self-access or moderators
     if requester_id == subject_id:
         return True
-    
+
     if is_moderator(requester_id, guild_id):
         return True
-    
+
     return False
 
 # Use in envelope loading
@@ -678,7 +687,7 @@ If you have existing user data (e.g., a dictionary of preferences):
 ```python
 def migrate_to_memory(user_id, guild_id, existing_data, storage):
     """Migrate existing user data to memory system."""
-    
+
     # Facts
     if existing_data.get("favorite_food"):
         add_memorable_fact(
@@ -689,7 +698,7 @@ def migrate_to_memory(user_id, guild_id, existing_data, storage):
             confidence=0.85,  # Migrated data is trusted
             storage=storage
         )
-    
+
     # Patterns
     if existing_data.get("communication_style"):
         add_memorable_fact(
@@ -700,7 +709,7 @@ def migrate_to_memory(user_id, guild_id, existing_data, storage):
             confidence=0.80,
             storage=storage
         )
-    
+
     print(f"Migrated data for user {user_id}")
 ```
 
@@ -713,4 +722,3 @@ def migrate_to_memory(user_id, guild_id, existing_data, storage):
 3. **Monitor logs**: Check rejection patterns to refine LLM prompt
 4. **Tune configuration**: Adjust decay windows and thresholds
 5. **TDOS integration**: See [TDOS_MAPPING.md](TDOS_MAPPING.md) for kernel alignment
-
