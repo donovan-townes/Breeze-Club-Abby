@@ -1,7 +1,7 @@
 from discord.ext import commands
-from abby_core.utils.log_config import setup_logging,logging
+from abby_core.observability.logging import setup_logging,logging
 import discord
-from abby_core.economy.xp_handler import increment_xp, get_xp, initialize_xp, decrement_xp, reset_exp, get_level, get_level_from_xp, get_xp_required
+from abby_core.economy.xp import increment_xp, get_xp, initialize_xp, decrement_xp, reset_exp, get_level, get_level_from_xp, get_xp_required
 
 setup_logging()
 logger = logging.getLogger(__name__)

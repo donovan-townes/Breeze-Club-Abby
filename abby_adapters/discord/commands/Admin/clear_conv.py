@@ -1,6 +1,6 @@
 import asyncio
-import abby_core.utils.mongo_db as mongo_db
-from abby_core.utils.log_config import setup_logging, logging
+import abby_core.database.mongodb as mongo_db
+from abby_core.observability.logging import setup_logging, logging
 from discord.ext import commands
 client = mongo_db.connect_to_mongodb()
 import discord

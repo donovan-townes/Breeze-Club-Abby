@@ -6,8 +6,8 @@ import re
 import os
 from dotenv import load_dotenv
 from discord.ext import commands
-from abby_core.utils.log_config import setup_logging, logging
-from abby_core.utils.mongo_db import get_genres, get_promo_session
+from abby_core.observability.logging import setup_logging, logging
+from abby_core.database.mongodb import get_genres, get_promo_session
 
 
 setup_logging
@@ -210,7 +210,7 @@ async def generate(message):
 
                 if generated_posts:
                     for platform, post in generated_posts:
-                        post = re.sub("\033\[\d+m", "", post)
+                        post = re.sub(r"\033\[\d+m", "", post)
                         await message.channel.send(f"**POST {day}** for {platform}: \n---\n{post}")
     else:
         await message.channel.send("❌Program canceled.")

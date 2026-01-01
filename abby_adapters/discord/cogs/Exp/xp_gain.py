@@ -1,8 +1,8 @@
 import datetime
 import os
 from dotenv import load_dotenv
-from abby_core.economy.xp_handler import increment_xp
-from abby_core.utils.log_config import setup_logging, logging
+from abby_core.economy.xp import increment_xp
+from abby_core.observability.logging import setup_logging, logging
 import asyncio
 from discord.ext import tasks,commands
 
@@ -80,13 +80,20 @@ class ExperienceGainManager(commands.Cog):
     @tasks.loop(minutes=int(os.getenv("XP_STREAM_INTERVAL_MINUTES", "5")))
     async def check_streaming(self):
         # logger.info(f"[💰] Checking streaming users")
-        for user_id in self.streaming_users:
-            increment_xp(user_id, 5)
+        for member in list(self.streaming_users):
+            # Get guild_id from member (need to fetch member object from bot)
+            guild = self.bot.guilds[0] if self.bot.guilds else None
+            guild_id = guild.id if guild else None
+            increment_xp(member.id if hasattr(member, 'id') else member, 5, guild_id)
 
     @tasks.loop(hours=24)
     async def daily_task(self):
         logger.info(f"[💰] Sending daily bonus message")
         channel = self.bot.get_channel(self.daily_message_channel_id)
+        if not channel:
+            logger.warning("[💰] XP_CHANNEL_ID not set or channel not found; skipping daily bonus message")
+            return
+
         self.daily_message = await channel.send("Here is the daily bonus message, react to earn +5 EXP!")
         await self.daily_message.add_reaction('<a:z8_leafheart_excited:806057904431693824>')
         self.daily_bonus_users = set()  # clear the list for the new message
@@ -117,7 +124,8 @@ class ExperienceGainManager(commands.Cog):
             logger.info("Handling Reaction")
             # Check if the user has already received the bonus
             if user.id not in self.daily_bonus_users:
-                increment_xp(user.id, 5)  # increment the user's xp
+                guild_id = reaction.message.guild.id if reaction.message.guild else None
+                increment_xp(user.id, 5, guild_id)  # increment the user's xp
                 await reaction.message.channel.send(f"Congratulations {user.mention}, you earned +5 EXP!")
                 # mark the user as having received the bonus
                 self.daily_bonus_users.add(user.id)
@@ -171,7 +179,8 @@ class ExperienceGainManager(commands.Cog):
                 # logger.info(f"[💰] XP Gain: {xp_gain}")
                 self.exp_gain = xp_gain
 
-                leveled_up = increment_xp(user_id, xp_gain)
+                guild_id = message.guild.id if message.guild else None
+                leveled_up = increment_xp(user_id, xp_gain, guild_id)
                 # logger.info(f"Leveled up variable: {leveled_up}")
                 logger.info(f"[💰] User gained {xp_gain} EXP")
 
@@ -197,7 +206,8 @@ class ExperienceGainManager(commands.Cog):
                 elif 'image' in attachment.content_type:
                     logger.info("[💰] User sent an image file")
                 self.last_attachment_time[user_id] = now
-                leveled_up = increment_xp(user_id, 10)
+                guild_id = message.guild.id if message.guild else None
+                leveled_up = increment_xp(user_id, 10, guild_id)
                 if leveled_up:
                     await message.channel.send(
                         f"Congratulations {message.author.mention}, you leveled up!")

@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-from abby_core.utils.log_config import setup_logging, logging
+from abby_core.observability.logging import setup_logging, logging
 
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -10,15 +10,15 @@ class ReloadCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(name='reload', aliases=['r'])
+    @commands.command(name='reloadcog', aliases=['rc', 'reload_cog'])
     @commands.is_owner()
     async def reload_cog(self, ctx, *, cog_name: str = None):
         """Reload a specific cog or all cogs without restarting the bot
         
         Usage:
-        !reload chatbot          - Reload the chatbot cog
-        !reload Fun.giveaway     - Reload the giveaway cog
-        !reload all              - Reload all cogs
+        !reloadcog chatbot          - Reload the chatbot cog
+        !reloadcog Fun.giveaway     - Reload the giveaway cog
+        !reloadcog all              - Reload all cogs
         """
         if not cog_name:
             await ctx.send("❌ Please specify a cog name or 'all'")

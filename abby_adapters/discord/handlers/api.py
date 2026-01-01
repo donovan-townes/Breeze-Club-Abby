@@ -4,7 +4,7 @@ from flask import Flask, request, jsonify
 import requests
 from discord.ext import commands
 import discord
-from abby_core.utils.log_config import setup_logging, logging
+from abby_core.observability.logging import setup_logging, logging
 import aiohttp.web
 
 

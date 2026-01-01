@@ -1,6 +1,6 @@
 from discord.ext import commands, tasks
-from abby_core.utils.log_config import logging, setup_logging
-from abby_core.utils.mongo_db import *
+from abby_core.observability.logging import logging, setup_logging
+from abby_core.database.mongodb import *
 
 setup_logging()
 logger = logging.getLogger(__name__)

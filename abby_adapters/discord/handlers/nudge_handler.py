@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands, tasks
 import asyncio
 import datetime
-from abby_core.utils.log_config import logging,setup_logging
+from abby_core.observability.logging import logging,setup_logging
 import os
 from dotenv import load_dotenv
 

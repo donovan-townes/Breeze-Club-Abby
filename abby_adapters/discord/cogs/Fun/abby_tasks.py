@@ -3,10 +3,10 @@ Set Tasks For Users. Every morning at the user's {active_time} time, send a mess
 to remind them of their tasks for the day. This generates an openai response based on the user's
 tasks for the day. This is called "Abby's Morning Coffee" and is a daily task for admins/modnators.
 """
-from abby_core.utils.log_config import setup_logging, logging
-from abby_core.utils.mongo_db import connect_to_mongodb
+from abby_core.observability.logging import setup_logging, logging
+from abby_core.database.mongodb import connect_to_mongodb
+from abby_core.llm.client import LLMClient
 import discord
-import openai
 import os
 from discord.ext import commands, tasks
 from dotenv import load_dotenv
@@ -20,11 +20,10 @@ setup_logging()
 logger = logging.getLogger(__name__)
 
 load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
-# OpenAi Call
-def openai_call(prompt):
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
+# OpenAI Call using LLMClient
+async def openai_call(prompt):
+    llm_client = LLMClient()
+    response = await llm_client.chat(
         messages=[
             {"role": "system",
                 "content": "You are Abby, virtual bunny assistant for Breeze Club, designed to help the user with their tasks. Your response should appear as such (with a happy bunny persona and flair):"},
@@ -46,7 +45,7 @@ def openai_call(prompt):
         max_tokens=500,
         temperature=0.5
     )
-    return response["choices"][0]["message"]["content"]
+    return response
 
 
 
@@ -110,7 +109,7 @@ class AbbyTasks(commands.Cog):
             if time_until_task <= datetime.timedelta(hours=1) and time_until_task >= datetime.timedelta():
                 user_mention = f"<@{user_id}>"
                 prompt = f"Upcoming task.\n\nUser: {user_mention}\nTask: {task_description}\nTime: {task_time}\n\nAbby:"
-                response = openai_call(prompt)
+                response = await openai_call(prompt)
                 await self.send_message(channel, response)
             # Delete the task if it's past the due date
             elif time_until_task < datetime.timedelta():
@@ -145,7 +144,7 @@ class AbbyTasks(commands.Cog):
             user_mention = f"<@{user_id}>"
             tasks_info = "\n".join([f"Task {task['taskID']}: {task['taskDescription']} at {task['taskTime'].strftime('%H:%M')}" for task in user_tasks])
             prompt = f"Morning Tasks:\n\nUser: {user_mention}\nTasks: {tasks_info}\n\nAbby:"
-            response = openai_call(prompt)
+            response = await openai_call(prompt)
             await channel.send(response)
     
     @morning_tasks.before_loop

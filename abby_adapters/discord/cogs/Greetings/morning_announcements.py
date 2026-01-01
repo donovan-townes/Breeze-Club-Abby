@@ -1,20 +1,19 @@
 import discord
 from discord import Embed
 from discord.ext import commands, tasks
-import openai
 import random
 import asyncio
 import datetime
 
 import os
 from dotenv import load_dotenv
-from abby_core.utils.log_config import setup_logging, logging
-from abby_core.utils.mongo_db import connect_to_mongodb
+from abby_core.observability.logging import setup_logging, logging
+from abby_core.database.mongodb import connect_to_mongodb
+from abby_core.llm.client import LLMClient
 
 setup_logging()
 logger = logging.getLogger(__name__)
 load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
 
 ABBY_CHAT = 1103490012500201632
 DAILY_GUST = 802461884091465748
@@ -31,7 +30,6 @@ class MorningAnnouncements(commands.Cog):
     async def on_ready(self):
         logger.info(f"Logged in as {self.bot.user.name} - {self.bot.user.id}")
         logger.info(f"Discord.py API version: {discord.__version__}")
-        logger.info(f"OpenAI API version: {openai.__version__}")
         logger.info(f"Ready to use!")
     
     @commands.command()
@@ -57,7 +55,7 @@ class MorningAnnouncements(commands.Cog):
             for announcement in announcements:
                 await self.announcement_channel.send(announcement)
             # Get the daily gust
-            daily_gust = self.get_daily_gust()
+            daily_gust = await self.get_daily_gust()
             # Send the daily gust
             await self.daily_gust.send(daily_gust)
             logger.info("[📢] Sent morning announcements")
@@ -87,21 +85,21 @@ class MorningAnnouncements(commands.Cog):
         
         return announcements,num_announcements
     
-    def get_daily_gust(self):
-        prompt = "The Daily Gust is a daily message from the Breeze Club Discord server."
-         # Generate the Daily Gust using OpenAI
-        response = openai.Completion.create(
-            engine="davinci",
-            prompt=prompt,
-            temperature=0.7,
-            max_tokens=100,
-            top_p=1,
-            frequency_penalty=0,
-            presence_penalty=0.6,
-            stop=["\n"]
-        )
-        # Get the Daily Gust
-        daily_gust = response.choices[0].text
-        # Return the Daily Gust
-        return daily_gust
+    async def get_daily_gust(self):
+        prompt = "Generate a short, inspiring daily message for the Breeze Club Discord server (100 words max)."
+        try:
+            llm_client = LLMClient()
+            # Generate the Daily Gust using LLMClient
+            response = await llm_client.chat(
+                messages=[
+                    {"role": "system", "content": "You are a creative writer for the Breeze Club Discord server."},
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=100,
+                temperature=0.7,
+            )
+            return response
+        except Exception as e:
+            logger.error(f"[\ud83d\udce2] Error generating Daily Gust: {e}")
+            return "Have a wonderful day at Breeze Club! \ud83c\udf43"
     

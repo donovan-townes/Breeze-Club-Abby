@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 from discord import app_commands
-from abby_core.utils.log_config import setup_logging, logging
+from abby_core.observability.logging import setup_logging, logging
 setup_logging()
 logger = logging.getLogger(__name__)
 

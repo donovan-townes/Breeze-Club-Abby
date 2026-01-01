@@ -1,7 +1,7 @@
-from abby_core.utils.log_config import setup_logging, logging
+from abby_core.observability.logging import setup_logging, logging
+from abby_core.llm.client import LLMClient
 # from datetime import datetime, timedelta
 import datetime
-import openai
 import asyncio
 from discord.ext import tasks, commands
 
@@ -23,26 +23,23 @@ class Motd(commands.Cog):
 
         #GPT Call
     async def generate_message(self):
-        logger.info("[👋] Generating Message (OpenAI)")
-        openai.api_key = os.getenv("OPENAI_API_KEY")
+        logger.info("[👋] Generating Message (LLMClient)")
         channel = self.bot.get_channel(ABBY_CHAT)
         try:
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
+            llm_client = LLMClient()
+            response = await llm_client.chat(
                 messages=[
-                    {"role": "system","content":  "You are a creative, thoughtful, and inspiring bunny."},
-                    {"role": "user","content":  "I need your assistance, GPT! 🐇✨"},
+                    {"role": "system", "content": "You are a creative, thoughtful, and inspiring bunny."},
+                    {"role": "user", "content": "I need your assistance, GPT! 🐇✨"},
                     {"role": "assistant", "content": "Of course, dear Abby, bunny assistant! How can I help you today? 🌟"},
-                    {"role": "user", "content": "I'm looking for an inspiring and uplifting message for our creators in the Breeze Club Discord server. Can you generate a \"Message of the Day\" that will fill their hearts with joy and motivation? 🎨🌈"},
+                    {"role": "user", "content": "I'm looking for an inspiring and uplifting message for our creators in the Breeze Club Discord server. Can you generate a 'Message of the Day' that will fill their hearts with joy and motivation? 🎨🌈"},
                     {"role": "assistant", "content": "Absolutely! Let me channel my creative powers and bring forth a delightful message (formatted for Discord) for your creators in the server to cherish - about 200 characters! *hops into creative mode* 🎩✨"},
                     {"role": "assistant", "content": "Message of the Day:"},
                 ],
                 max_tokens=300,
                 temperature=1.5,
             )
-            status_code = response["choices"][0]["finish_reason"]
-            assert status_code == "stop", f"The status code was {status_code}."
-            return response["choices"][0]["message"]["content"]
+            return response
         except Exception as e:
             logger.error(f"[👋] Error generating message: {e}")
             await channel.send(f"Error generating MOTD message: {e}")

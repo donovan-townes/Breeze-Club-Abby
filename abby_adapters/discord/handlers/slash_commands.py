@@ -16,22 +16,41 @@ class SlashCommands(commands.Cog):
     @commands.is_owner()
     @commands.command(name="sync")
     async def sync(self, ctx: commands.Context, guilds: commands.Greedy[discord.Object], spec: Optional[Literal["~", "*", "^"]] = None) -> None:
+        """Sync slash commands to Discord.
+        
+        Usage:
+        - !sync          → Sync ALL commands globally (1 hour delay)
+        - !sync ~        → Sync commands to THIS GUILD ONLY (instant)
+        - !sync *        → Copy global commands to this guild then sync (instant)
+        - !sync ^        → CLEAR all commands from this guild (emergency reset)
+        """
         if not guilds:
             if spec == "~":
                 synced = await ctx.bot.tree.sync(guild=ctx.guild)
+                msg = f"✅ **Guild Sync**: Synced {len(synced)} commands to **{ctx.guild.name}** (instant)"
             elif spec == "*":
                 ctx.bot.tree.copy_global_to(guild=ctx.guild)
                 synced = await ctx.bot.tree.sync(guild=ctx.guild)
+                msg = f"✅ **Copy & Sync**: Synced {len(synced)} commands to **{ctx.guild.name}** (copied from global)"
             elif spec == "^":
                 ctx.bot.tree.clear_commands(guild=ctx.guild)
                 await ctx.bot.tree.sync(guild=ctx.guild)
+                msg = f"🧹 **Cleared**: Removed all commands from **{ctx.guild.name}** (use !sync ~ to restore)"
                 synced = []
             else:
                 synced = await ctx.bot.tree.sync()
+                msg = f"🌍 **Global Sync**: Synced {len(synced)} commands globally (takes up to 1 hour)"
 
-            await ctx.send(
-                f"Synced {len(synced)} commands {'globally' if spec is None else 'to the current guild.'}"
+            embed = discord.Embed(
+                title="🔄 Slash Command Sync",
+                description=msg,
+                color=discord.Color.green() if spec != "^" else discord.Color.orange()
             )
+            embed.add_field(name="💡 Quick Help", value=
+                "`!sync ~` - Guild only (fast)\n"
+                "`!sync` - Global (slow)\n"
+                "`!sync ^` - Clear commands", inline=False)
+            await ctx.send(embed=embed)
             return
 
         ret = 0

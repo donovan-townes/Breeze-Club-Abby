@@ -1,1 +1,0 @@
-# abby-adapters discord package

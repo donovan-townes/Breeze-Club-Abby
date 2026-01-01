@@ -1,5 +1,5 @@
 from discord.ext  import commands
-from abby_core.utils.mongo_db import get_genres
+from abby_core.database.mongodb import get_genres
 
 
 @commands.command()

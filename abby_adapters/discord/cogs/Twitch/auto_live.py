@@ -4,9 +4,9 @@ from abby_adapters.discord.cogs.Twitch.twitch import get_user_twitch_handle, is_
 import os
 from dotenv import load_dotenv
 import requests
-from abby_core.utils.log_config import setup_logging, logging
+from abby_core.observability.logging import setup_logging, logging
 import asyncio
-from abby_core.utils.mongo_db import connect_to_mongodb
+from abby_core.database.mongodb import connect_to_mongodb
 import discord
 
 setup_logging()

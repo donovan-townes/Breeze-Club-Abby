@@ -7,8 +7,8 @@ import dateutil.parser as parser
 import discord
 from discord.ext import commands,tasks
 from dotenv import load_dotenv
-from abby_core.utils.log_config import logging, setup_logging
-from abby_core.utils.mongo_db import *
+from abby_core.observability.logging import logging, setup_logging
+from abby_core.database.mongodb import *
 from datetime import timedelta, datetime
 from abby_adapters.discord.cogs.Twitter.Client import TwitterClient
 from tabulate import tabulate
@@ -42,8 +42,8 @@ def convert_seconds_to_readable(seconds):
 # Insert the Giveaway Document into the database
 def update_giveaway_metadata(prize,emoji,channel,duration,start_time):
     client = connect_to_mongodb()
-    db = client["Abby_Giveaway"]
-    collection = db["Giveaway"]
+    db = client["Abby_Database"]
+    collection = db["giveaways"]
 
 
     # Fill in the Giveaway Document
@@ -106,8 +106,8 @@ class Giveaway(commands.Cog):
     async def start_giveaway(self, giveaway):
         logger.info(f"[🎉] Starting Giveaway")
         client = connect_to_mongodb()
-        db = client["Abby_Giveaway"]    
-        collection = db["Giveaway"]
+        db = client["Abby_Database"]    
+        collection = db["giveaways"]
         # Fetch the correct giveaway and message_id
         collection.find_one({"_id": giveaway['_id']})
         # Fetch the giveaway message
@@ -125,8 +125,8 @@ class Giveaway(commands.Cog):
     async def end_giveaway(self, giveaway):
         # Fetch the Giveaway
         client = connect_to_mongodb()
-        db = client["Abby_Giveaway"]
-        collection = db["Giveaway"]
+        db = client["Abby_Database"]
+        collection = db["giveaways"]
         
         # Check if giveaway has a message_id (old giveaways might not)
         if 'giveaway_message_id' not in giveaway:
@@ -166,8 +166,8 @@ class Giveaway(commands.Cog):
     @commands.command()
     async def list_giveaways(self,ctx):
         client = connect_to_mongodb()
-        db = client["Abby_Giveaway"]
-        collection = db["Giveaway"]
+        db = client["Abby_Database"]
+        collection = db["giveaways"]
         # Fetch the giveaway from the database
         giveaways = collection.find({})
         # Iterate through the giveaways and print them
@@ -299,8 +299,8 @@ class Giveaway(commands.Cog):
     # Giveaway Check
     async def check_giveaways(self):
         client = connect_to_mongodb()
-        db = client["Abby_Giveaway"]
-        collection = db["Giveaway"]
+        db = client["Abby_Database"]
+        collection = db["giveaways"]
         current_time = datetime.now()
         
         # Iterate through all giveaways and check their statuses

@@ -5,8 +5,8 @@ from discord import app_commands
 from discord.ext import commands
 
 # Core modules already on path via launch.py
-from abby_core.rag import rag_handler  # type: ignore
-from abby_core.utils.log_config import setup_logging, logging
+from abby_core.rag import ingest as rag_ingest, query as rag_query
+from abby_core.observability.logging import setup_logging, logging
 
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -25,7 +25,15 @@ class RAGAdmin(commands.Cog):
     async def rag_ingest(self, interaction: discord.Interaction, source: str, title: str, text: str):
         await interaction.response.defer(thinking=True, ephemeral=True)
         try:
-            result = rag_handler.ingest(source=source, title=title, text=text)
+            guild_id = str(interaction.guild_id) if interaction.guild_id else None
+            result = rag_ingest(
+                source=source,
+                title=title,
+                text=text,
+                user_id=None,  # None = global/guild-wide
+                guild_id=guild_id,
+                tags=[source]
+            )
             await interaction.followup.send(f"Ingested {result['ingested_chunks']} chunks.", ephemeral=True)
         except Exception as exc:
             logger.error("[RAG] Ingest failed: %s", exc)
@@ -36,7 +44,13 @@ class RAGAdmin(commands.Cog):
     async def rag_query(self, interaction: discord.Interaction, text: str, top_k: int = 3):
         await interaction.response.defer(thinking=True, ephemeral=True)
         try:
-            result = rag_handler.query(text=text, top_k=top_k)
+            guild_id = str(interaction.guild_id) if interaction.guild_id else None
+            result = rag_query(
+                text=text,
+                user_id=None,  # None = search guild-wide
+                guild_id=guild_id,
+                top_k=top_k
+            )
             lines = []
             for item in result.get("results", []):
                 snippet = item.get("text", "")
@@ -56,7 +70,7 @@ class RAGAdmin(commands.Cog):
         await interaction.response.defer(thinking=True, ephemeral=True)
         try:
             # Basic count from Mongo rag_documents
-            from abby_core.utils.mongo_db import get_rag_documents_collection  # late import to avoid circular
+            from abby_core.database.mongodb import get_rag_documents_collection  # late import to avoid circular
             col = get_rag_documents_collection()
             count = col.count_documents({})
             await interaction.followup.send(f"RAG documents: {count}", ephemeral=True)

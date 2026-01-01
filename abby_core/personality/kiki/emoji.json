@@ -1,0 +1,16 @@
+{
+  "emojis": {
+    "Kiki_Idle_1": "<a:Kiki_idle_1:1234567890123456789>",
+    "Kiki_Idle_2": "<a:Kiki_idle_2:1234567890123456790>",
+    "Kiki_Idle_3": "",
+    "Kiki_Idle_4": "",
+    "Kiki_Idle_5": "",
+    "Kiki_Idle_6": ""
+  },
+  "discord_animated": {
+    "kiki_pounce": "<a:Kiki_pounce:1234567890123456791>",
+    "kiki_idle": "<a:Kiki_idle:1234567890123456792>",
+    "kiki_play": "<a:Kiki_play:1234567890123456793>",
+    "wave": "<a:leafwave:806058099051200534>"
+  }
+}

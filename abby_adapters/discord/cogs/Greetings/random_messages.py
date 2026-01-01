@@ -2,8 +2,8 @@ import discord
 import openai
 from discord.ext import commands, tasks
 import random
-from abby_core.utils.chat_openai import chat
-from abby_core.utils.log_config import setup_logging, logging
+from abby_core.llm.conversation import chat
+from abby_core.observability.logging import setup_logging, logging
 import time
 from abby_core.llm.persona import get_persona, get_persona_by_name
 

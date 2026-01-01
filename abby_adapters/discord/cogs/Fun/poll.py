@@ -5,7 +5,7 @@ from discord.ui import View, Button, Select, TextInput, Modal
 
 from discord.ext import commands
 
-from abby_core.utils.log_config import logging, setup_logging
+from abby_core.observability.logging import logging, setup_logging
 setup_logging()
 logger = logging.getLogger(__name__)
 

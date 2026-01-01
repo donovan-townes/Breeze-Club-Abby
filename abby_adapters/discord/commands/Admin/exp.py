@@ -1,6 +1,6 @@
 from tqdm import tqdm
 from pymongo import MongoClient
-from abby_core.economy.xp_handler import increment_xp, get_xp, initialize_xp, decrement_xp, reset_exp, get_user_level, get_level_from_xp,get_xp_required
+from abby_core.economy.xp import increment_xp, get_xp, initialize_xp, decrement_xp, reset_exp, get_user_level, get_level_from_xp,get_xp_required
 import discord
 from discord.ext import commands
 from discord.ext.commands import Group
@@ -56,7 +56,8 @@ def exp_embed(message,progress,level,xp,xp_required):
 @commands.group(invoke_without_command=True)
 @commands.cooldown(1, 5, commands.BucketType.user)
 async def exp(message):
-    xp = get_xp(message.author.id)
+    user_data = get_xp(message.author.id)
+    xp = user_data.get("points", 0) if user_data else 0
     level = get_level_from_xp(xp)
     xp_required = get_xp_required(level+1)['xp_required']
     try:
@@ -80,7 +81,8 @@ async def add(message, points: int, user: discord.Member = None):
     if user is None:
         user = message.author
     try:
-        increment_xp(user.id, points)
+        guild_id = message.guild.id if message.guild else None
+        increment_xp(user.id, points, guild_id)
     except Exception as e:
         await message.send(f"Sorry, there's an error here: {e}")
 
@@ -90,7 +92,8 @@ async def add(message, points: int, user: discord.Member = None):
 @exp.command()
 async def sub(message, points: int):
     user = message.author.id
-    decrement_xp(user, points)
+    guild_id = message.guild.id if message.guild else None
+    decrement_xp(user, points, guild_id)
     await message.send(f"You've decreased your xp by {points}")
 
 @commands.has_permissions(administrator=True)

@@ -7,7 +7,7 @@ import base64
 from dotenv import load_dotenv
 import os
 import math
-from abby_core.utils.log_config import setup_logging, logging
+from abby_core.observability.logging import setup_logging, logging
 import aiohttp
 
 ABBY_RUN = "<a:Abby_run:1135375927589748899>"

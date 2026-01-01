@@ -5,9 +5,9 @@ from discord.ext import commands
 from discord.ext.commands import Group
 from pathlib import Path
 
-from abby_core.utils.log_config import logging, setup_logging
+from abby_core.observability.logging import logging, setup_logging
 import os
-from abby_core.utils import audio_layer
+# from abby_core.utils import audio_layer  # Removed - audio_layer was deleted
 
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -58,13 +58,15 @@ async def once_done(sink, channel, *args):
 
     await channel.send(f"Finished recording audio for: {', '.join(recorded_users)}.")
     # After saving the files, call the audio_layer function to combine them
+    # Note: audio_layer was removed - this functionality needs to be reimplemented if needed
     output_path = audio_root / f"{date_time}_COMBINED.wav"
-    audio_layer.layer_wav_files(str(output_path), str(save_directory))
-    logger.info(f"Finished combining audio files. Output path: {output_path}")
+    # audio_layer.layer_wav_files(str(output_path), str(save_directory))
+    logger.info(f"Audio files saved. Combined output disabled (audio_layer removed): {output_path}")
 
     # Send the combined audio file to the Discord channel
-    with open(output_path, 'rb') as fp:
-        await channel.send(f"Here is the combined audio file:", file=discord.File(fp, f"{date_time}_COMBINED.wav"))
+    # Note: Commented out since audio_layer is removed
+    # with open(output_path, 'rb') as fp:
+    #     await channel.send(f"Here is the combined audio file:", file=discord.File(fp, f"{date_time}_COMBINED.wav"))
 
 async def backup_audio(channel):    
     """Backup the audio files to the backup server. Not Yet Implemented."""

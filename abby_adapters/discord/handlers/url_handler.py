@@ -1,5 +1,5 @@
-from abby_core.utils.log_config import setup_logging, logging
-from abby_core.utils.mongo_db import connect_to_mongodb
+from abby_core.observability.logging import setup_logging, logging
+from abby_core.database.mongodb import connect_to_mongodb
 from urllib.parse import urlparse
 from googleapiclient.discovery import build
 from urllib.parse import parse_qs, urlparse

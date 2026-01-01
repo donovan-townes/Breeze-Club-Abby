@@ -15,8 +15,8 @@ if str(ABBY_ROOT) not in sys.path:
     sys.path.insert(0, str(ABBY_ROOT))
 
 # Import from abby-core
-from abby_core.utils.log_config import setup_logging, logging
-from abby_core.utils.tdos_events import emit_heartbeat, emit_error
+from abby_core.observability.logging import setup_logging, logging
+from abby_core.observability.telemetry import emit_heartbeat, emit_error
 
 # Import from adapter
 from .handlers import command_loader as commandhandler

@@ -2,8 +2,8 @@ import discord
 import random
 import asyncio
 from discord.ext import commands, tasks
-from abby_core.utils.log_config import setup_logging, logging
-from abby_core.economy.xp_handler import increment_xp
+from abby_core.observability.logging import setup_logging, logging
+from abby_core.economy.xp import increment_xp
 import datetime
 
 setup_logging()
@@ -155,7 +155,9 @@ class EmojiGame(commands.Cog):
                 channel = self.bot.get_channel(self.breeze_lounge)
                 logger.info(f"User: {user_id} - Channel: {channel}")
                 await channel.send(f"{user.display_name} wins 10 EXP")
-                increment_xp(user_id, 10) # Increment EXP by 10
+                # Get guild_id from channel
+                guild_id = channel.guild.id if hasattr(channel, 'guild') and channel.guild else None
+                increment_xp(user_id, 10, guild_id) # Increment EXP by 10
                 self.active_exp = False
         else:
             pass

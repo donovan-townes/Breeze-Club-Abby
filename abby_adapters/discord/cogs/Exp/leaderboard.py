@@ -1,9 +1,9 @@
 from pymongo import MongoClient
 import discord
 from discord.ext import commands, tasks
-from abby_core.utils.mongo_db import connect_to_mongodb
-from abby_core.utils.log_config import setup_logging, logging
-from abby_core.economy.xp_handler import fetch_all_users_exp  # Assuming you've added the function to xp_handler.py
+from abby_core.database.mongodb import connect_to_mongodb
+from abby_core.observability.logging import setup_logging, logging
+from abby_core.economy.xp import fetch_all_users_exp  # Assuming you've added the function to xp_handler.py
 import datetime
 
 setup_logging()

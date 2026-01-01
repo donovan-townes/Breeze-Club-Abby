@@ -4,7 +4,7 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 import importlib
 import sys
-from abby_core.utils.log_config import logging, setup_logging
+from abby_core.observability.logging import logging, setup_logging
 from discord.ext import commands,tasks
 import asyncio
 import schedule

@@ -7,7 +7,7 @@ import asyncio
 
 import os
 from dotenv import load_dotenv
-from abby_core.utils.log_config import setup_logging, logging
+from abby_core.observability.logging import setup_logging, logging
 setup_logging()
 logger = logging.getLogger(__name__)
 load_dotenv()

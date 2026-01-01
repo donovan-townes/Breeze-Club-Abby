@@ -5,7 +5,7 @@ import discord
 import datetime
 from dateutil import parser
 from discord.interactions import Interaction
-from abby_core.utils.log_config import setup_logging, logging
+from abby_core.observability.logging import setup_logging, logging
 from discord.ui import View, Button, ChannelSelect, RoleSelect, MentionableSelect
 
 from typing import Optional, Union, List

@@ -1,7 +1,7 @@
 import tweepy
 from dotenv import load_dotenv
 import os
-from abby_core.utils.log_config import setup_logging, logging
+from abby_core.observability.logging import setup_logging, logging
 import time
 from discord.ext import commands,tasks 
 

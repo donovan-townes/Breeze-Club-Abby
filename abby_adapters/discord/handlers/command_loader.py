@@ -3,7 +3,7 @@ import importlib
 import sys
 from pathlib import Path
 from tabulate import tabulate
-from abby_core.utils.log_config import setup_logging,logging
+from abby_core.observability.logging import setup_logging,logging
 import discord
 from discord.ext import commands, tasks
 import inspect
@@ -27,6 +27,7 @@ class CommandHandler(commands.Cog):
         loaded_items = []  # List to store the loaded commands and cogs
 
         await self.load_cog_files(loaded_items)
+        await self.load_handler_files(self.bot, loaded_items)
         await self.load_command_files(self.bot, loaded_items)
 
         headers = ["Status", "Category", "Item Name", "Message"]
@@ -77,6 +78,43 @@ class CommandHandler(commands.Cog):
 
         # Append the number of loaded commands to the list
         loaded_items.append(("🐰", "Commands", "Loaded", loaded_commands))
+    
+    async def load_handler_files(self, bot, loaded_items):
+        """Load handler files from the handlers/ directory"""
+        loaded_handlers = 0
+        handlers_dir = str(WORKING_DIRECTORY / 'abby_adapters' / 'discord' / 'handlers')
+        adapters_root = str(WORKING_DIRECTORY / 'abby_adapters')
+        
+        for file_name in os.listdir(handlers_dir):
+            if file_name.endswith(".py") and file_name not in ["__init__.py", "command_loader.py"]:
+                module_name = file_name[:-3]
+                module_path = f"abby_adapters.discord.handlers.{module_name}"
+                
+                # Check if the module is already loaded
+                if module_path in sys.modules:
+                    module = importlib.reload(sys.modules[module_path])
+                else:
+                    try:
+                        module = importlib.import_module(module_path)
+                    except Exception as e:
+                        self.logger.warning(f"⚠️  [{module_name}] Error: {str(e)}")
+                        continue
+                
+                # Check if it has setup function
+                if hasattr(module, "setup") and callable(module.setup):
+                    try:
+                        if inspect.iscoroutinefunction(module.setup):
+                            await module.setup(bot)
+                        else:
+                            module.setup(bot)
+                        loaded_items.append(("✅", "Handlers", module_name, "Success"))
+                        loaded_handlers += 1
+                    except Exception as e:
+                        loaded_items.append(("❌", "Handlers", module_name, f"Error: {str(e)}"))
+        
+        # Append the number of loaded handlers to the list
+        if loaded_handlers > 0:
+            loaded_items.append(("🐰", "Handlers", "Loaded", loaded_handlers))
     
     async def load_cog_files(self, loaded_items):
         main_directory = str(WORKING_DIRECTORY / 'abby_adapters' / 'discord' / 'cogs')

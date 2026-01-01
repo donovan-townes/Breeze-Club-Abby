@@ -1,6 +1,8 @@
+# Disabled until modernization fix
+
 from discord.ext import commands as discord_commands
 from twitchio.ext import commands as twitch_commands
-from abby_core.utils.log_config import setup_logging, logging
+from abby_core.observability.logging import setup_logging, logging
 from dotenv import load_dotenv
 import os
 from asyncio import run_coroutine_threadsafe
@@ -160,5 +162,5 @@ class TwitchChatCog(discord_commands.Cog):
         if discord_channel:
             await discord_channel.send(message_content)
 
-async def setup(bot):
-    await bot.add_cog(TwitchChatCog(bot))
+# async def setup(bot):
+#     await bot.add_cog(TwitchChatCog(bot))
