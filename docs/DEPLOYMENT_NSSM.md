@@ -3,8 +3,9 @@
 ### What Needs to Live on TSERVER:
 
 **Required:**
+
 ```
-C:\abby_bot\
+C:\opt\tdos\apps\abby\
 ├── launch.py                    # Entry point
 ├── requirements.txt             # Dependencies
 ├── .env                         # PRODUCTION environment vars
@@ -16,6 +17,7 @@ C:\abby_bot\
 ```
 
 **NOT needed on TSERVER:**
+
 ```
 ❌ .git/                         # Keep version control local
 ❌ __pycache__/                  # Auto-generated
@@ -29,17 +31,19 @@ C:\abby_bot\
 ### TSERVER Setup Steps:
 
 **1. Initial File Transfer:**
+
 ```powershell
 # From your local machine
-scp -r C:\Abby_Discord_Latest\abby_core tserver@100.108.120.82:"C:\abby_bot\"
-scp -r C:\Abby_Discord_Latest\abby_adapters tserver@100.108.120.82:"C:\abby_bot\"
-scp -r C:\Abby_Discord_Latest\scripts tserver@100.108.120.82:"C:\abby_bot\"
-scp C:\Abby_Discord_Latest\launch.py tserver@100.108.120.82:"C:\abby_bot\"
-scp C:\Abby_Discord_Latest\requirements.txt tserver@100.108.120.82:"C:\abby_bot\"
-scp C:\Abby_Discord_Latest\.env tserver@100.108.120.82:"C:\abby_bot\.env.production"
+scp -r C:\Abby_Discord_Latest\abby_core tserver@100.108.120.82:"C:\opt\tdos\apps\abby\"
+scp -r C:\Abby_Discord_Latest\abby_adapters tserver@100.108.120.82:"C:\opt\tdos\apps\abby\"
+scp -r C:\Abby_Discord_Latest\scripts tserver@100.108.120.82:"C:\opt\tdos\apps\abby\"
+scp C:\Abby_Discord_Latest\launch.py tserver@100.108.120.82:"C:\opt\tdos\apps\abby\"
+scp C:\Abby_Discord_Latest\requirements.txt tserver@100.108.120.82:"C:\opt\tdos\apps\abby\"
+scp C:\Abby_Discord_Latest\.env tserver@100.108.120.82:"C:\opt\tdos\apps\abby\.env.production"
 ```
 
 **2. SSH into TSERVER and Setup:**
+
 ```powershell
 ssh tserver@100.108.120.82
 
@@ -65,6 +69,7 @@ python launch.py
 ```
 
 **3. Install NSSM Service:**
+
 ```powershell
 # Still on TSERVER, run as Administrator:
 
@@ -96,6 +101,7 @@ nssm status AbbyBot
 ```
 
 **4. Service Management Commands:**
+
 ```powershell
 # Check service status
 nssm status AbbyBot
@@ -120,6 +126,7 @@ nssm remove AbbyBot confirm
 ### Development → Production Workflow:
 
 **Local Development:**
+
 ```powershell
 # Work on your local machine
 cd C:\Abby_Discord_Latest
@@ -128,6 +135,29 @@ cd C:\Abby_Discord_Latest
 ```
 
 **Deploy Updates to TSERVER:**
+
+Use the automated deployment script (recommended):
+
+```powershell
+# Full deployment
+.\scripts\deploy\deploy.ps1
+
+# Deploy specific components
+.\scripts\deploy\deploy.ps1 -Target core
+.\scripts\deploy\deploy.ps1 -Target adapters
+.\scripts\deploy\deploy.ps1 -Target cogs
+
+# Preview changes before deploying
+.\scripts\deploy\deploy.ps1 -Target all -DryRun
+
+# Deploy without restarting (for rapid iteration)
+.\scripts\deploy\deploy.ps1 -Target cogs -SkipRestart
+```
+
+See [scripts/deploy/README.md](../scripts/deploy/README.md) for detailed deployment documentation.
+
+**Manual deployment (legacy method):**
+
 ```powershell
 # Option 1: Full sync (after major changes)
 ssh tserver@100.108.120.82 "nssm stop AbbyBot"
@@ -147,6 +177,7 @@ rsync -avz --exclude='.git' --exclude='__pycache__' --exclude='.env' C:\Abby_Dis
 ### Environment Configuration:
 
 **Local .env (development):**
+
 ```ini
 DISCORD_TOKEN=your_dev_bot_token_here
 MONGODB_URI=mongodb://localhost:27017
@@ -156,6 +187,7 @@ OLLAMA_BASE_URL=http://localhost:11434
 ```
 
 **TSERVER .env (production):**
+
 ```ini
 DISCORD_TOKEN=your_production_bot_token_here
 MONGODB_URI=mongodb://your_production_db:27017
@@ -167,16 +199,19 @@ OLLAMA_BASE_URL=http://tserver-ip:11434  # If Ollama on TSERVER
 ### MongoDB Considerations:
 
 **Option A: MongoDB on TSERVER**
+
 - Abby connects to local MongoDB on TSERVER
 - Fastest, no network latency
 - Backup: `mongodump` on TSERVER regularly
 
 **Option B: Remote MongoDB (Atlas/Shared)**
+
 - Both local dev and TSERVER connect to same DB
 - Easier development (shared data)
 - Set `MONGODB_URI` to remote connection string in both environments
 
 **Current Setup (Local MongoDB):**
+
 ```powershell
 # Restore your backup to TSERVER MongoDB
 scp -r C:\Abby_Discord_Latest\dump tserver@100.108.120.82:"C:\temp\"

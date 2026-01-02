@@ -6,21 +6,25 @@ from pathlib import Path
 from dotenv import load_dotenv
 import asyncio
 
-# Add abby-core to Python path (two levels up from adapter)
+# Add abby_core to Python path (two levels up from adapter)
 ABBY_ROOT = Path(__file__).parent.parent.parent
-ABBY_CORE_PATH = ABBY_ROOT / "abby-core"
+ABBY_CORE_PATH = ABBY_ROOT / "abby_core"
 if str(ABBY_CORE_PATH) not in sys.path:
     sys.path.insert(0, str(ABBY_CORE_PATH))
 if str(ABBY_ROOT) not in sys.path:
     sys.path.insert(0, str(ABBY_ROOT))
 
-# Import from abby-core
+# Import from abby_core
 from abby_core.observability.logging import setup_logging, logging
 from abby_core.observability.telemetry import emit_heartbeat, emit_error
+from abby_core.storage.storage_manager import StorageManager
+from abby_core.generation.image_generator import ImageGenerator
 
-# Import from adapter
-from .handlers import command_loader as commandhandler
+# Import from adapter (command loader moved to core/)
+from .core.loader import CommandHandler
+from .config import BotConfig
 
+# Load environment variables
 load_dotenv()
 setup_logging()
 logger = logging.getLogger("Main")
@@ -31,8 +35,39 @@ class Abby(commands.Bot):
         intents = discord.Intents.all()
         super().__init__(command_prefix=commands.when_mentioned_or('!'), intents=intents)
         self.token = os.getenv('ABBY_TOKEN')
-        self.command_handler = commandhandler.CommandHandler(self)
+        self.command_handler = CommandHandler(self)
         self.start_time = None  # Track bot startup time
+        
+        # Initialize BotConfig
+        self.config = BotConfig()
+        
+        # Initialize storage and generation services
+        try:
+            self.storage = StorageManager(
+                storage_root=self.config.storage.storage_root,
+                max_global_storage_mb=self.config.storage.max_global_storage_mb,
+                max_user_storage_mb=self.config.storage.max_user_storage_mb,
+                max_user_daily_gens=self.config.storage.max_user_daily_gens,
+                cleanup_days=self.config.storage.cleanup_days,
+                owner_user_ids=self.config.storage.quota_overrides.owner_user_ids,
+                owner_daily_limit=self.config.storage.quota_overrides.owner_daily_limit,
+                role_daily_limits=self.config.storage.quota_overrides.role_daily_limits,
+                level_bands=self.config.storage.quota_overrides.level_bands,
+            )
+            logger.info("[🐰] StorageManager initialized successfully")
+        except Exception as e:
+            logger.error(f"[🐰] Failed to initialize StorageManager: {e}")
+            self.storage = None
+        
+        try:
+            self.generator = ImageGenerator(
+                api_key=self.config.api.stability_key,
+                api_host=self.config.api.stability_api_host
+            )
+            logger.info("[🐰] ImageGenerator initialized successfully")
+        except Exception as e:
+            logger.error(f"[🐰] Failed to initialize ImageGenerator: {e}")
+            self.generator = None
 
     async def setup_hook(self):
         """Called when bot is starting up."""
