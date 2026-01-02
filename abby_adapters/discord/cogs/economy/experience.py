@@ -14,7 +14,7 @@ Features:
 import discord
 from discord import app_commands
 from discord.ext import commands
-from abby_core.observability.logging import setup_logging, logging
+from abby_core.observability.logging import logging
 from abby_core.economy.xp import (
     increment_xp, decrement_xp, get_xp, initialize_xp, 
     reset_exp, get_level_from_xp, get_xp_required, fetch_all_users_exp
@@ -22,7 +22,7 @@ from abby_core.economy.xp import (
 from datetime import datetime
 from typing import Optional
 
-setup_logging()
+logger = logging.getLogger(__name__)
 logger = logging.getLogger(__name__)
 
 
@@ -409,4 +409,4 @@ async def setup(bot: commands.Bot):
     """Add cogs to bot."""
     await bot.add_cog(ExpCommands(bot))
     await bot.add_cog(ExpAdminCommands(bot))
-    logger.info("[⭐] Modern EXP system loaded successfully")
+

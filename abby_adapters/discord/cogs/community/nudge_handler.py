@@ -15,13 +15,11 @@ Features:
 import discord
 from discord.ext import commands, tasks
 import datetime
-from abby_core.observability.logging import logging, setup_logging
+from abby_core.observability.logging import logging
 from abby_adapters.discord.config import BotConfig
 
-setup_logging()
 logger = logging.getLogger(__name__)
-
-ABBY_IDLE = "<a:Abby_idle:1135376647495884820>"
+config = BotConfig()
 
 
 class NudgeHandler(commands.Cog):
@@ -33,18 +31,11 @@ class NudgeHandler(commands.Cog):
         self.last_nudge_timestamps = {}
         
         # Load config
-        try:
-            self.config = BotConfig()
-            # Note: These would need to be added to BotConfig if they don't exist
-            # For now, we'll use getenv as fallback with centralized config pattern
-            self.enabled = self.config.features.nudge_enabled if hasattr(self.config, 'features') else False
-            self.interval_hours = 24  # Default interval
-            self.nudge_channel_id = None  # Will be loaded from config
-        except Exception as e:
-            logger.error(f"Error loading nudge config: {e}")
-            self.enabled = False
-            self.interval_hours = 24
-            self.nudge_channel_id = None
+        self.enabled = config.features.nudge_enabled
+        self.interval_hours = config.timing.nudge_interval_hours
+        self.nudge_channel_id = config.channels.nudge_channel
+        
+        logger.debug(f"[👈] Nudge handler initialized (enabled={self.enabled}, interval={self.interval_hours}h, channel={self.nudge_channel_id})")
 
     async def cog_unload(self) -> None:
         """Clean up when cog is unloaded."""
@@ -77,7 +68,7 @@ class NudgeHandler(commands.Cog):
                     try:
                         channel = self.bot.get_channel(self.nudge_channel_id)
                         if channel:
-                            await channel.send(f"Hey <@{user_id}> — we miss you! How are things? {ABBY_IDLE}")
+                            await channel.send(f"Hey <@{user_id}> — we miss you! How are things? {config.emojis.abby_idle}")
                             self.last_nudge_timestamps[user_id] = datetime.datetime.utcnow()
                             self.last_message_timestamps[user_id] = datetime.datetime.utcnow()
                             logger.info(f"[👈] Nudged user {user_id}")

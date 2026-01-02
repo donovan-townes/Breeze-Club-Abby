@@ -5,12 +5,14 @@ import discord
 import datetime
 from dateutil import parser
 from discord.interactions import Interaction
-from abby_core.observability.logging import setup_logging, logging
+from abby_core.observability.logging import logging
+from abby_adapters.discord.config import BotConfig
 from discord.ui import View, Button, ChannelSelect, RoleSelect, MentionableSelect
 
 from typing import Optional, Union, List
-setup_logging()
 logger = logging.getLogger(__name__)
+
+config = BotConfig()
 
 # Announcements
 class Announcements(commands.Cog):
@@ -18,7 +20,7 @@ class Announcements(commands.Cog):
         self.bot = bot
         self.client = bot
         self.logger = logger
-        self.EMOJI = '<a:Abby_run:1135375927589748899>'
+        self.EMOJI = config.emojis.abby_run
 
     # Helper Functions        
     async def post_announcement(self,interaction,channel,announcement_title,announcement_message,notified_members_roles=None):

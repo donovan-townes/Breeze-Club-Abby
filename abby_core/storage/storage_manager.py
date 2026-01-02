@@ -72,11 +72,7 @@ class StorageManager:
             level_bands=level_bands,
         )
         
-        logger.info(f"[💾] Storage manager initialized")
-        logger.info(f"    Root: {self.storage_root}")
-        logger.info(f"    Images: {self.images_dir}")
-        logger.info(f"    Temp: {self.temp_dir}")
-        logger.info(f"    Cleanup: {cleanup_days} days")
+        logger.debug(f"[💾] Storage manager initialized (root: {self.storage_root}, cleanup: {cleanup_days}d)")
     
     def _ensure_directories(self) -> None:
         """Create storage directories if they don't exist."""

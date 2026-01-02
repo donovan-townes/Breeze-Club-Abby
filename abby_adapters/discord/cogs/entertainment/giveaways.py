@@ -16,13 +16,12 @@ import discord
 from discord import app_commands
 from discord.ext import commands, tasks
 from discord.ui import Modal, TextInput, View, Button
-from abby_core.observability.logging import setup_logging, logging
+from abby_core.observability.logging import logging
 from abby_core.database.mongodb import connect_to_mongodb
 from datetime import datetime, timedelta
 from typing import Optional
 import random
 
-setup_logging()
 logger = logging.getLogger(__name__)
 
 
@@ -433,4 +432,3 @@ class GiveawayCommands(commands.GroupCog, name="giveaway"):
 async def setup(bot: commands.Bot):
     """Add cog to bot."""
     await bot.add_cog(GiveawayCommands(bot))
-    logger.info("[🎁] Modern Giveaway system loaded successfully")

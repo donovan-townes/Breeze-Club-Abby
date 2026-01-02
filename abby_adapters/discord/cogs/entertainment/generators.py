@@ -1,8 +1,10 @@
 from discord.ext import commands
-from abby_core.observability.logging import setup_logging, logging
+from abby_core.observability.logging import logging
 import requests
 from discord import app_commands
 import discord
+
+logger = logging.getLogger(__name__)
 
 
 class Genrenator(commands.Cog):

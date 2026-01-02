@@ -2,18 +2,12 @@ import discord
 import random
 from discord.ext import commands
 from discord import app_commands
-from abby_core.observability.logging import setup_logging, logging
+from abby_core.observability.logging import logging
 from abby_core.database.mongodb import connect_to_mongodb
+from abby_adapters.discord.config import BotConfig
 
-
-
-setup_logging
 logger = logging.getLogger(__name__)
-
-BREEZE_LOUNGE = "802512963519905852"
-BREEZE_MEMES = "1111136459072753664"
-UP_ARROW = "⬆️"
-DOWN_ARROW = "⬇️"
+config = BotConfig()
 
 
 class Meme(commands.Cog):
@@ -90,8 +84,7 @@ class Meme(commands.Cog):
 
     
     async def fetch_all_memes_from_channel(self):
-        channel_id = BREEZE_MEMES
-        channel = self.bot.get_channel(int(channel_id))
+        channel = self.bot.get_channel(config.channels.breeze_memes)
         # Retrieve the last 200 messages
         messages = []
         async for msg in channel.history():
@@ -112,10 +105,10 @@ class Meme(commands.Cog):
         
         message_id = message.content
 
-        if str(payload.emoji) == UP_ARROW:
+        if str(payload.emoji) == config.emojis.up_arrow:
             logger.info("Upvoted meme with id: {}".format(message_id))
             self.update_score(message_id, upvote=True)
-        if str(payload.emoji) == DOWN_ARROW:
+        if str(payload.emoji) == config.emojis.down_arrow:
             self.update_score(message_id, upvote=False) 
     
 
@@ -150,8 +143,8 @@ class Meme(commands.Cog):
         logger.info(f"Sending meme with url: {meme_url}")
         await interaction.response.send_message(meme_url)
         sent_message = await interaction.original_response()
-        await sent_message.add_reaction(UP_ARROW)
-        await sent_message.add_reaction(DOWN_ARROW)
+        await sent_message.add_reaction(config.emojis.up_arrow)
+        await sent_message.add_reaction(config.emojis.down_arrow)
 
         
 

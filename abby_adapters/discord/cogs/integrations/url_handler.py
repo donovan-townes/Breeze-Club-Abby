@@ -11,7 +11,7 @@ Automatically detects URLs posted in messages and handles them based on type:
 Integrates with user social profiles and stores URL metadata in database.
 """
 
-from abby_core.observability.logging import setup_logging, logging
+from abby_core.observability.logging import logging
 from abby_core.database.mongodb import connect_to_mongodb
 from urllib.parse import urlparse, parse_qs
 from googleapiclient.discovery import build
@@ -19,7 +19,6 @@ import requests
 from discord.ext import commands
 from abby_adapters.discord.config import BotConfig
 
-setup_logging()
 logger = logging.getLogger(__name__)
 
 

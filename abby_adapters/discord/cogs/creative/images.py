@@ -1,12 +1,12 @@
 import discord
 from discord.ext import commands
 from discord import app_commands
-from dotenv import load_dotenv
 import aiohttp
 from pathlib import Path
 from typing import Optional, Tuple
-from abby_core.observability.logging import setup_logging, logging
+from abby_core.observability.logging import logging
 from abby_core.economy.xp import get_level
+from abby_adapters.discord.config import BotConfig
 import sys
 
 # Ensure abby_core is in path
@@ -14,13 +14,10 @@ ABBY_ROOT = Path(__file__).parent.parent.parent.parent.parent
 if str(ABBY_ROOT) not in sys.path:
     sys.path.insert(0, str(ABBY_ROOT))
 
-load_dotenv()
+config = BotConfig()
 
-ABBY_RUN = "<a:Abby_run:1135375927589748899>"
-ABBY_IDLE = "<a:Abby_idle:1135376647495884820>"
-UP_ARROW = "\U00002B06"
-NEXT = "\U000027A1"
-DAY = 86400
+# Constants
+DAY_SECONDS = 86400  # Clearer constant name for seconds in a day
 
 # Create a mapping of style presets to their corresponding variables
 style_presets = {
@@ -46,7 +43,6 @@ style_presets = {
 class ImageGenerate(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
-        setup_logging()
         self.logger = logging.getLogger(__name__)
         self.message_id = None
         
@@ -394,7 +390,7 @@ class ImageOptions(discord.ui.View):
     async def like(self,  interaction: discord.Interaction, button: discord.ui.Button):
         self.value = "like"
         user = interaction.user
-        await interaction.channel.send (f"{ABBY_RUN} {user.mention} likes the image!.. {ABBY_IDLE}")
+        await interaction.channel.send (f"{config.emojis.abby_run} {user.mention} likes the image!.. {config.emojis.abby_idle}")
         await interaction.response.send_message("Thank you for liking the image! This will later be added to a database of your liked images", ephemeral=True)
 
 

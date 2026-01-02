@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 from dotenv import load_dotenv
 import asyncio
+import time
 
 # Add abby_core to Python path (two levels up from adapter)
 ABBY_ROOT = Path(__file__).parent.parent.parent
@@ -15,7 +16,7 @@ if str(ABBY_ROOT) not in sys.path:
     sys.path.insert(0, str(ABBY_ROOT))
 
 # Import from abby_core
-from abby_core.observability.logging import setup_logging, logging
+from abby_core.observability.logging import setup_logging, logging, log_startup_phase, STARTUP_PHASES
 from abby_core.observability.telemetry import emit_heartbeat, emit_error
 from abby_core.storage.storage_manager import StorageManager
 from abby_core.generation.image_generator import ImageGenerator
@@ -36,10 +37,15 @@ class Abby(commands.Bot):
         super().__init__(command_prefix=commands.when_mentioned_or('!'), intents=intents)
         self.token = os.getenv('ABBY_TOKEN')
         self.command_handler = CommandHandler(self)
-        self.start_time = None  # Track bot startup time
+        self.start_time = None
+        self.init_start_time = time.time()  # Track init timing
         
         # Initialize BotConfig
         self.config = BotConfig()
+        
+        # Phase 1: Core Services Initialization
+        log_startup_phase(logger, STARTUP_PHASES["CORE_SERVICES"], 
+                         "[🐰] Initializing core services...")
         
         # Initialize storage and generation services
         try:
@@ -54,24 +60,20 @@ class Abby(commands.Bot):
                 role_daily_limits=self.config.storage.quota_overrides.role_daily_limits,
                 level_bands=self.config.storage.quota_overrides.level_bands,
             )
-            logger.info("[🐰] StorageManager initialized successfully")
-        except Exception as e:
-            logger.error(f"[🐰] Failed to initialize StorageManager: {e}")
-            self.storage = None
-        
-        try:
             self.generator = ImageGenerator(
                 api_key=self.config.api.stability_key,
                 api_host=self.config.api.stability_api_host
             )
-            logger.info("[🐰] ImageGenerator initialized successfully")
+            log_startup_phase(logger, STARTUP_PHASES["CORE_SERVICES"],
+                            f"[🐰] Core services initialized (storage: {self.config.storage.storage_root}, image gen: {self.config.api.stability_api_host})")
         except Exception as e:
-            logger.error(f"[🐰] Failed to initialize ImageGenerator: {e}")
+            logger.error(f"[🐰] Failed to initialize core services: {e}")
+            self.storage = None
             self.generator = None
 
     async def setup_hook(self):
         """Called when bot is starting up."""
-        logger.info("[🐰] Abby setup hook running...")
+        log_startup_phase(logger, STARTUP_PHASES["CONNECTION"], "[🐰] Abby setup hook running...")
         # Start heartbeat task
         self.heartbeat_task.start()
 
@@ -79,9 +81,10 @@ class Abby(commands.Bot):
         """Called when bot successfully connects to Discord."""
         import time
         self.start_time = time.time()
+        init_duration = time.time() - (self.init_start_time if hasattr(self, 'init_start_time') else self.start_time)
         
-        logger.info(f"[🐰] Abby is online as {self.user}")
-        logger.info(f"[🐰] Connected to {len(self.guilds)} guilds")
+        log_startup_phase(logger, STARTUP_PHASES["CONNECTION"],
+                         f"[🐰] Connected as {self.user} to {len(self.guilds)} guilds")
         
         # Emit initial TDOS heartbeat
         try:
@@ -93,12 +96,29 @@ class Abby(commands.Bot):
             logger.info("[TDOS] Initial heartbeat emitted")
         except Exception as e:
             logger.error(f"[TDOS] Failed to emit initial heartbeat: {e}")
-            # Emit error event about heartbeat failure
             emit_error(
                 error_type=type(e).__name__,
                 message=f"Failed to emit initial heartbeat: {str(e)}",
                 recovery_action="Bot continues but TDOS signals unavailable"
             )
+        
+        # Wait for background tasks to initialize (small delay)
+        await asyncio.sleep(0.5)
+        
+        # Final startup summary with metrics
+        cog_count = len(self.cogs)
+        command_count = len([c for c in self.walk_commands()])
+        log_startup_phase(
+            logger, 
+            STARTUP_PHASES["COMPLETE"],
+            f"[🐰] Startup complete: {cog_count} cogs, {command_count} commands ({init_duration:.1f}s)",
+            metrics={
+                "cog_count": cog_count,
+                "command_count": command_count,
+                "startup_duration_seconds": round(init_duration, 2),
+                "guild_count": len(self.guilds)
+            }
+        )
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx, error):

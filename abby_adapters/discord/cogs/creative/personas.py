@@ -12,11 +12,10 @@ from abby_core.llm.persona import (
     get_all_personas
 )
 from abby_core.personality import reload_persona
-from abby_core.observability.logging import setup_logging, logging
+from abby_core.observability.logging import logging
 from abby_core.database import mongodb as mongo_db
 from pathlib import Path
 
-setup_logging()
 logger = logging.getLogger(__name__)
 
 

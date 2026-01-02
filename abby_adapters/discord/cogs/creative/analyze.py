@@ -1,11 +1,12 @@
 from discord.ext import commands
 from abby_core.llm.conversation import analyze as analyze_method
-from abby_core.observability.logging import setup_logging, logging
+from abby_core.observability.logging import logging
+from abby_adapters.discord.config import BotConfig
 import discord
 from discord import app_commands
 
-setup_logging()
-LEAF_HEART = "<a:z8_leafheart_excited:806057904431693824>"
+logger = logging.getLogger(__name__)
+config = BotConfig()
 
 class Analyze(commands.Cog):
     def __init__(self, bot):
@@ -53,16 +54,19 @@ class Analyze(commands.Cog):
 
         analysis = analyze_method(author, messages)
 
-        channel_id = 1132531783884341291  # Replace with the desired channel ID
-        channel = self.bot.get_channel(channel_id)  # Get the channel object
+        # Use test channel for analysis output (configurable)
+        channel = self.bot.get_channel(config.channels.test_channel)
+        if not channel:
+            await interaction.followup.send("❌ Analysis output channel not configured.", ephemeral=True)
+            return
+            
         embed = discord.Embed(title=f"Analysis of your last {amount} messages ", description=analysis, color=0x00ff00)
         embed.set_author(name=author.global_name , icon_url=author.avatar.url)
         embed.set_thumbnail(url=self.bot.user.avatar.url)
         embed.set_footer(text="Analysis provided by " + self.bot.user.name, icon_url=self.bot.user.avatar.url)
-        msg = await channel.send(embed=embed)  # Send the analysis to the channel
-        await msg.add_reaction(LEAF_HEART)
-        # await self.send_message(channel,analysis)  # Send the analysis to the channel
-        await interaction.followup.send("Analysis sent to <#1132531783884341291>.", ephemeral=True)
+        msg = await channel.send(embed=embed)
+        await msg.add_reaction(config.emojis.leaf_heart)
+        await interaction.followup.send(f"Analysis sent to {channel.mention}.", ephemeral=True)
   
 
 async def setup(bot):

@@ -1,15 +1,12 @@
-from abby_core.observability.logging import setup_logging, logging
+from abby_core.observability.logging import logging
+from abby_adapters.discord.config import BotConfig
 from discord.ext import commands
 from discord import app_commands
 import discord
 import requests
 
-
-setup_logging
 logger = logging.getLogger(__name__)
-
-BREEZE_LOUNGE = "802512963519905852"
-BREEZE_MEMES = "1111136459072753664"
+config = BotConfig()
 
 class RedditMeme(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:

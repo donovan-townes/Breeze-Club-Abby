@@ -6,9 +6,8 @@ from discord.ext import commands
 
 # Core modules already on path via launch.py
 from abby_core.rag import ingest as rag_ingest, query as rag_query
-from abby_core.observability.logging import setup_logging, logging
+from abby_core.observability.logging import logging
 
-setup_logging()
 logger = logging.getLogger(__name__)
 
 
@@ -18,7 +17,7 @@ class RAGAdmin(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        logger.info("[RAG] RAG admin commands loaded")
+        logger.debug("[RAG] RAG admin commands ready")
 
     @app_commands.command(name="rag_ingest", description="Owner: Ingest text into RAG corpus")
     @app_commands.default_permissions(administrator=True)

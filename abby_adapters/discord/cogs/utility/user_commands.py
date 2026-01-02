@@ -11,12 +11,11 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from discord.ui import Modal, TextInput, View, Select
-from abby_core.observability.logging import setup_logging, logging
+from abby_core.observability.logging import logging
 from abby_core.database.mongodb import connect_to_mongodb
 from datetime import datetime
 from typing import Optional
 
-setup_logging()
 logger = logging.getLogger(__name__)
 
 
@@ -496,4 +495,3 @@ class UserCommands(commands.Cog):
 async def setup(bot: commands.Bot):
     """Add cog to bot."""
     await bot.add_cog(UserCommands(bot))
-    logger.info("[👤] Modern User Commands loaded successfully")

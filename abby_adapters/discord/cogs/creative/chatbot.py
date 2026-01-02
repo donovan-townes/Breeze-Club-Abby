@@ -5,11 +5,9 @@ import random
 import uuid
 import time
 import discord
-import sys
-from pathlib import Path
 import os
 from datetime import datetime
-from discord.ext import commands, tasks
+from discord.ext import commands
 
 # Import personality configuration system
 from abby_core.personality import get_personality_config
@@ -33,9 +31,8 @@ try:
     from abby_core.rag import query as rag_query
 except ImportError:
     rag_query = None
-from abby_core.observability.logging import setup_logging,logging
+from abby_core.observability.logging import logging
 
-setup_logging()
 logger = logging.getLogger(__name__)
 
 def apply_pattern_updates(user_id: str, updates: dict) -> None:
@@ -400,38 +397,6 @@ class Chatbot(commands.Cog):
             })
         else:
             logger.info(f"[🧠] No existing memory for user {user_id} - starting fresh")
-        
-        # === LEGACY SUMMARY CHAIN (COMMENTED OUT) ===
-        # The old approach: fetch last summary from previous session and insert into chat history
-        # Issues: Large payload, no structure, no caching, loses context over time
-        # 
-        # sessions_collection = get_sessions_collection()
-        # query = {
-        #     "user_id": str(user_id),
-        #     "closed_at": {"$exists": True},
-        #     "status": "completed"
-        # }
-        # if guild_id:
-        #     query["guild_id"] = guild_id
-        # 
-        # previous_session = sessions_collection.find_one(
-        #     query,
-        #     sort=[("closed_at", -1)]
-        # )
-        # 
-        # last_summary = None
-        # if previous_session and "summary" in previous_session:
-        #     try:
-        #         last_summary = bdcrypt.decrypt(previous_session["summary"], user_id)
-        #         logger.info(f"[📗] Found encrypted summary from previous session")
-        #     except Exception as e:
-        #         logger.warning(f"[⚠️] Failed to decrypt summary: {e}")
-        # 
-        # if last_summary:
-        #     chat_history.insert(0, {
-        #         "input": "Previous Conversation Summary:",
-        #         "response": last_summary,
-        #     })
         
         return chat_history
 
