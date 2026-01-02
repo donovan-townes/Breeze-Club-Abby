@@ -1,13 +1,10 @@
 import discord
 from discord.ext import commands
-from discord.ext.commands import BucketType
 from discord import app_commands
-import base64
 from dotenv import load_dotenv
-import os
-import math
 import aiohttp
 from pathlib import Path
+from typing import Optional, Tuple
 from abby_core.observability.logging import setup_logging, logging
 from abby_core.economy.xp import get_level
 import sys
@@ -60,15 +57,21 @@ class ImageGenerate(commands.Cog):
         if not self.storage or not self.generator:
             self.logger.error("Storage or Generator services not available on bot instance")
 
-    def _quota_context(self, interaction: discord.Interaction):
+    def _quota_context(self, interaction: discord.Interaction) -> Tuple[str, Optional[str], list[str], int]:
+        """Extract quota-related context from interaction.
+        
+        Returns:
+            Tuple of (user_id, guild_id, user_roles, user_level)
+        """
         user_id = str(interaction.user.id)
         guild_id = str(interaction.guild.id) if interaction.guild else None
         user_roles = [str(role.id) for role in getattr(interaction.user, "roles", [])]
         try:
-            # Get guild-specific level
-            user_level = get_level(user_id) if not guild_id else get_level(user_id)
+            # Get user level (guild-specific once supported)
+            user_level = get_level(user_id)
             # TODO: Once get_level supports guild_id parameter, use: get_level(user_id, guild_id)
-        except Exception:
+        except Exception as e:
+            self.logger.warning(f"Failed to get user level for {user_id}: {e}")
             user_level = 1
         return user_id, guild_id, user_roles, user_level
 
@@ -86,21 +89,9 @@ class ImageGenerate(commands.Cog):
             style_preset = "enhance"
         
         # Check quota before generation
-        quota_status = self.storage.get_quota_status(
-            user_id,
-            user_roles=user_roles,
-            user_level=user_level,
-            guild_id=guild_id,
-        )
-        if not quota_status['daily']['allowed']:
-            reset_time = quota_status['daily']['reset_hours']
-            embed = discord.Embed(
-                title="Daily Generation Limit Reached",
-                description=f"You've reached your daily limit of {quota_status['daily']['limit']} generations.",
-                color=discord.Color.red()
-            )
-            embed.add_field(name="Next Reset", value=f"In {reset_time} hours", inline=False)
-            await interaction.followup.send(embed=embed, ephemeral=True)
+        has_quota, error_embed = await self._check_quota(interaction, user_id, guild_id, user_roles, user_level)
+        if not has_quota:
+            await interaction.followup.send(embed=error_embed, ephemeral=True)
             return
         
         # Generate image using service
@@ -168,7 +159,7 @@ class ImageGenerate(commands.Cog):
             await interaction.followup.send("Image generation services are not available. Please try again later.", ephemeral=True)
             return
         
-        user_id, user_roles, user_level = self._quota_context(interaction)
+        user_id, guild_id, user_roles, user_level = self._quota_context(interaction)
         
         # Find the last image in channel history
         last_image = None
@@ -186,21 +177,9 @@ class ImageGenerate(commands.Cog):
             style_preset = "enhance"
         
         # Check quota before generation
-        quota_status = self.storage.get_quota_status(
-            user_id,
-            user_roles=user_roles,
-            user_level=user_level,
-            guild_id=guild_id,
-        )
-        if not quota_status['daily']['allowed']:
-            reset_time = quota_status['daily']['reset_hours']
-            embed = discord.Embed(
-                title="Daily Generation Limit Reached",
-                description=f"You've reached your daily limit of {quota_status['daily']['limit']} generations.",
-                color=discord.Color.red()
-            )
-            embed.add_field(name="Next Reset", value=f"In {reset_time} hours", inline=False)
-            await interaction.followup.send(embed=embed, ephemeral=True)
+        has_quota, error_embed = await self._check_quota(interaction, user_id, guild_id, user_roles, user_level)
+        if not has_quota:
+            await interaction.followup.send(embed=error_embed, ephemeral=True)
             return
         
         try:
@@ -291,21 +270,9 @@ class ImageGenerate(commands.Cog):
             return
         
         # Check quota before generation
-        quota_status = self.storage.get_quota_status(
-            user_id,
-            user_roles=user_roles,
-            user_level=user_level,
-            guild_id=guild_id,
-        )
-        if not quota_status['daily']['allowed']:
-            reset_time = quota_status['daily']['reset_hours']
-            embed = discord.Embed(
-                title="Daily Generation Limit Reached",
-                description=f"You've reached your daily limit of {quota_status['daily']['limit']} generations.",
-                color=discord.Color.red()
-            )
-            embed.add_field(name="Next Reset", value=f"In {reset_time} hours", inline=False)
-            await interaction.followup.send(embed=embed, ephemeral=True)
+        has_quota, error_embed = await self._check_quota(interaction, user_id, guild_id, user_roles, user_level)
+        if not has_quota:
+            await interaction.followup.send(embed=error_embed, ephemeral=True)
             return
         
         try:
@@ -392,19 +359,26 @@ class ImageGenerate(commands.Cog):
 
             
     @imagine.error
-    async def imagine_error(self,interaction, error):
+    async def imagine_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
+        """Handle errors from the imagine command."""
         if isinstance(error, commands.MissingRequiredArgument):
-            await interaction.followup.send("Please provide some text to generate an image.")
+            await interaction.followup.send("Please provide some text to generate an image.", ephemeral=True)
         elif isinstance(error, commands.CommandOnCooldown):
+            # Command cooldown handled by Discord
             pass
-            # Handle command cooldown
-        elif isinstance(error.original, aiohttp.ClientResponseError) and 'text_prompts' in str(error.original):
-            # Handle the specific text prompts error
-            await interaction.edit_original_response(content=f"The text prompt cannot be blank. Please provide some text to generate an image.")
+        elif hasattr(error, 'original') and isinstance(error.original, aiohttp.ClientResponseError):
+            if 'text_prompts' in str(error.original):
+                await interaction.edit_original_response(content="The text prompt cannot be blank. Please provide some text to generate an image.")
+            else:
+                self.logger.error(f"API error in imagine command: {error.original}", exc_info=True)
+                await interaction.edit_original_response(content="An error occurred while contacting the image generation service. Please try again later.")
         else:
-            # If you're unable to handle the error here, you might want to log it and notify the user
-            await interaction.edit_original_response(content=f"An unexpected error occurred. Please try again later.")
-            self.logger.exception(error)
+            self.logger.error(f"Unexpected error in imagine command: {error}", exc_info=True)
+            try:
+                await interaction.edit_original_response(content="An unexpected error occurred. Please try again later.")
+            except discord.NotFound:
+                # Interaction expired
+                pass
 
 
 class ImageOptions(discord.ui.View):
