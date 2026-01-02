@@ -7,6 +7,6 @@ tests/
 songs/
 memory_docs/
 shared/
-deploy-to-tserver.ps1
+deploy.ps1
 tdos_memory/
 

@@ -1,0 +1,99 @@
+"""
+Slash command synchronization and bot control commands.
+
+Essential admin-only commands for managing slash command registration
+and bot state. These are prefix commands (!sync, !reload) for emergency
+bot management.
+
+Commands:
+- !sync [~|*|^] - Sync slash commands to Discord
+- !reload - Reload modified cogs
+"""
+
+from typing import Literal, Optional
+import discord
+from discord.ext import commands
+from abby_core.observability.logging import setup_logging, logging
+
+setup_logging()
+logger = logging.getLogger(__name__)
+
+
+class SlashSyncCommands(commands.Cog):
+    """Handle slash command synchronization and bot control."""
+    
+    def __init__(self, bot: commands.Bot):
+        self.bot = bot
+        self.commander = self.bot.command_handler
+
+    @commands.guild_only()
+    @commands.is_owner()
+    @commands.command(name="sync")
+    async def sync(self, ctx: commands.Context, guilds: commands.Greedy[discord.Object], spec: Optional[Literal["~", "*", "^"]] = None) -> None:
+        """Sync slash commands to Discord.
+        
+        Usage:
+        - !sync          → Sync ALL commands globally (1 hour delay)
+        - !sync ~        → Sync commands to THIS GUILD ONLY (instant)
+        - !sync *        → Copy global commands to this guild then sync (instant)
+        - !sync ^        → CLEAR all commands from this guild (emergency reset)
+        """
+        if not guilds:
+            if spec == "~":
+                synced = await ctx.bot.tree.sync(guild=ctx.guild)
+                msg = f"✅ **Guild Sync**: Synced {len(synced)} commands to **{ctx.guild.name}** (instant)"
+            elif spec == "*":
+                ctx.bot.tree.copy_global_to(guild=ctx.guild)
+                synced = await ctx.bot.tree.sync(guild=ctx.guild)
+                msg = f"✅ **Copy & Sync**: Synced {len(synced)} commands to **{ctx.guild.name}** (copied from global)"
+            elif spec == "^":
+                ctx.bot.tree.clear_commands(guild=ctx.guild)
+                await ctx.bot.tree.sync(guild=ctx.guild)
+                msg = f"🧹 **Cleared**: Removed all commands from **{ctx.guild.name}** (use !sync ~ to restore)"
+                synced = []
+            else:
+                synced = await ctx.bot.tree.sync()
+                msg = f"🌍 **Global Sync**: Synced {len(synced)} commands globally (takes up to 1 hour)"
+
+            embed = discord.Embed(
+                title="🔄 Slash Command Sync",
+                description=msg,
+                color=discord.Color.green() if spec != "^" else discord.Color.orange()
+            )
+            embed.add_field(name="💡 Quick Help", value=
+                "`!sync ~` - Guild only (fast)\n"
+                "`!sync` - Global (slow)\n"
+                "`!sync ^` - Clear commands", inline=False)
+            await ctx.send(embed=embed)
+            logger.info(f"[🔄] Slash command sync: {msg}")
+            return
+
+        ret = 0
+        for guild in guilds:
+            try:
+                await ctx.bot.tree.sync(guild=guild)
+            except discord.HTTPException:
+                pass
+            else:
+                ret += 1
+
+        await ctx.send(f"Synced the tree to {ret}/{len(guilds)}.")
+
+    @commands.guild_only()
+    @commands.is_owner()
+    @commands.command(name="reload")
+    async def reload(self, ctx: commands.Context) -> None:
+        """Reload modified cogs from disk."""
+        try:
+            await ctx.send("🔄 Reloading cogs...")
+            await self.commander.reload_cogs(ctx=ctx)
+            logger.info("[🔄] Cogs reloaded successfully")
+        except Exception as e:
+            logger.error(f"[❌] Error reloading cogs: {e}")
+            await ctx.send(f"❌ Error reloading cogs: {e}")
+
+
+async def setup(bot: commands.Bot) -> None:
+    """Load the SlashSyncCommands cog."""
+    await bot.add_cog(SlashSyncCommands(bot))
+    logger.info("[✅] SlashSyncCommands cog loaded")
