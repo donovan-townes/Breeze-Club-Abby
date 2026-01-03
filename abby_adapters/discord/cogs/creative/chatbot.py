@@ -7,6 +7,8 @@ import time
 import discord
 import os
 from datetime import datetime
+from typing import Optional
+from discord import app_commands
 from discord.ext import commands
 
 # Import personality configuration system
@@ -34,6 +36,7 @@ try:
 except ImportError:
     rag_query = None
 from abby_core.observability.logging import logging
+from abby_core.database.memory_settings import get_memory_settings
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +44,7 @@ class Chatbot(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.TIMEOUT_SECONDS = 60.0
+        self.exchange_count = {}  # Track exchanges per user session
         
         # Load personality configuration (summon/dismiss words, response patterns)
         self.personality = get_personality_config()
@@ -499,13 +503,27 @@ class Chatbot(commands.Cog):
 
         await self.handle_chatbot(self.bot, message)
 
-    async def handle_conversation(self, client, message, user_id, session_id, chat_history):
-        user = message.author
+    async def handle_conversation(self, client, message_or_interaction, user_id, session_id, chat_history, max_exchanges=None):
+        user = message_or_interaction.user if hasattr(message_or_interaction, 'user') else message_or_interaction.author
+        guild_id = str(message_or_interaction.guild.id) if message_or_interaction.guild else None
+        
+        # Get max exchanges from guild settings if not provided
+        if max_exchanges is None:
+            settings = get_memory_settings(int(guild_id) if guild_id else 0)
+            max_exchanges = settings.get("max_conversation_exchanges", 10)
+        
         logger.info(
             "handling_conversation",
-            extra={"user_id": str(user.id), "username": user.name}
+            extra={"user_id": str(user.id), "username": user.name, "max_exchanges": max_exchanges}
         ) 
         start_time = time.perf_counter()
+        self.exchange_count[user_id] = 0  # Initialize exchange counter
+        
+        # Determine message channel
+        if hasattr(message_or_interaction, 'channel'):
+            message_channel = message_or_interaction.channel
+        else:
+            message_channel = message_or_interaction.channel
 
         # Start the conversation loop
         while True:
@@ -517,19 +535,37 @@ class Chatbot(commands.Cog):
                     check=lambda m: m.author == user and not m.content.startswith('!') and m.channel == self.user_channel[user_id]
                 )
 
+                # Track exchange count
+                self.exchange_count[user_id] += 1
+                
+                # Check if exchange ceiling reached
+                if self.exchange_count[user_id] >= max_exchanges:
+                    emoji = self.personality.get_emoji('abby_run', '')
+                    await user_input.channel.send(f"I've enjoyed our chat! Feel free to ask me something else later 😊 {emoji}")
+                    self.remove_user(user_id)
+                    # Generate a summary of last conversation
+                    self.end_summary(user_id,session_id,chat_history,guild_id)
+                    # End the conversation
+                    self.end_cleanup(user,start_time)
+                    if user_id in self.exchange_count:
+                        del self.exchange_count[user_id]
+                    break
+                
                 # If the user says the dismiss word, send a message and reset the chatbot
                 if self.personality.check_dismiss_trigger(user_input.content):
                     emoji = self.personality.get_emoji('abby_run', '')
                     await user_input.channel.send(f"So happy to help {user.mention}! *happily hops off*! {emoji}")
                     self.remove_user(user_id)
                     # Generate a summary of last conversation
-                    guild_id = str(message.guild.id) if message.guild else None
+                    guild_id = str(user_input.guild.id) if user_input.guild else None
                     self.end_summary(user_id,session_id,chat_history,guild_id)
                     # End the conversation
                     self.end_cleanup(user,start_time)
+                    if user_id in self.exchange_count:
+                        del self.exchange_count[user_id]
                     break
 
-                async with message.channel.typing():
+                async with user_input.channel.typing():
                     # Check user's chat mode and respond accordingly
                     response = self.user_chat_mode(user_id, chat_history, user_input)
                 await self.send_message(user_input.channel, response)
@@ -540,13 +576,14 @@ class Chatbot(commands.Cog):
             # If the user does not respond within the timeout, send a message and reset the chatbot
             except asyncio.TimeoutError:
                 emoji = self.personality.get_emoji('abby_jump', '')
-                await message.channel.send(f"Hey {user.mention}, I've gotta hop! {emoji}")
+                await user_input.channel.send(f"Hey {user.mention}, I've gotta hop! {emoji}")
                 self.remove_user(user_id)
                 # Generate a summary of last conversation
-                guild_id = str(message.guild.id) if message.guild else None
                 self.end_summary(user_id,session_id,chat_history,guild_id)       
                 # End the conversation
                 self.end_cleanup(user,start_time)
+                if user_id in self.exchange_count:
+                    del self.exchange_count[user_id]
                 break
 
             # If there is an error, send a message and reset the chatbot
@@ -555,17 +592,20 @@ class Chatbot(commands.Cog):
                     "conversation_error",
                     extra={"user_id": user_id, "error": str(e)}
                 )
-                await message.channel.send(f"Oops, there was an error. Please try again.")
+                await user_input.channel.send(f"Oops, there was an error. Please try again.")
                 # Remove User from Chatbot
                 self.remove_user(user_id)
                 # End the conversation
                 self.end_cleanup(user,start_time)
+                if user_id in self.exchange_count:
+                    del self.exchange_count[user_id]
                 break
 
     async def handle_chatbot(self, client, message):
         # logger.info("[💭] Handling Chatbot")
         start_time = time.perf_counter()
         user_id = str(message.author.id)
+        guild_id = str(message.guild.id) if message.guild else None
 
         # If the bot is already active for the user, return
         if user_id in self.active_instances:
@@ -573,6 +613,16 @@ class Chatbot(commands.Cog):
                 "chatbot_already_active",
                 extra={"user_id": user_id}
             )
+            return
+        
+        # Check guild settings for summon mode
+        settings = get_memory_settings(int(guild_id) if guild_id else 0)
+        summon_mode = settings.get("summon_mode", "both")
+        default_chat_mode = settings.get("default_chat_mode", "multi_turn")
+        max_exchanges = settings.get("max_conversation_exchanges", 10)
+        
+        # If slash-only mode, skip mention-based summoning
+        if summon_mode == "slash_only":
             return
         
         # Check for summon words using personality config
@@ -658,6 +708,135 @@ class Chatbot(commands.Cog):
             
             # Continue the listener loop
             await self.handle_conversation(client, message, user_id, session_id, chat_history)
+
+    @app_commands.command(name="chat", description="Chat with Abby")
+    async def chat_command(self, interaction: discord.Interaction, question: Optional[str] = None):
+        """
+        Slash command to start a chat with Abby.
+        
+        Args:
+            interaction: Discord interaction
+            question: Optional question to ask (if not provided, enters conversation mode)
+        """
+        await interaction.response.defer(thinking=False)
+        
+        user_id = str(interaction.user.id)
+        guild_id = str(interaction.guild.id) if interaction.guild else None
+        
+        # Check if already in conversation
+        if user_id in self.active_instances:
+            await interaction.followup.send("You're already chatting with me! Finish that conversation first.", ephemeral=True)
+            return
+        
+        try:
+            # Get guild settings for summon and chat modes
+            settings = get_memory_settings(int(guild_id) if guild_id else 0)
+            summon_mode = settings.get("summon_mode", "both")
+            default_chat_mode = settings.get("default_chat_mode", "multi_turn")
+            max_exchanges = settings.get("max_conversation_exchanges", 10)
+            
+            # Check if slash command summoning is enabled
+            if summon_mode == "mention_only":
+                await interaction.followup.send("Slash commands are not enabled for this server. Try mentioning me instead!", ephemeral=True)
+                return
+            
+            # Create session
+            session_id = str(uuid.uuid4())
+            
+            # Initialize user profile and chat history
+            self.user_channel[user_id] = interaction.channel
+            self.active_instances.append(user_id)
+            
+            # Create a wrapper object to provide message-like interface for interaction
+            class InteractionWrapper:
+                def __init__(self, interaction):
+                    self.author = interaction.user
+                    self.guild = interaction.guild
+                    self.channel = interaction.channel
+            
+            wrapper = InteractionWrapper(interaction)
+            chat_history = self.initalize_user(user_id, session_id, wrapper)
+            
+            # Determine behavior based on question and default_chat_mode
+            if question:
+                # User provided a question - ALWAYS one-shot
+                class MockMessage:
+                    def __init__(self, content, channel, author, guild):
+                        self.content = content
+                        self.channel = channel
+                        self.author = author
+                        self.guild = guild
+                
+                mock_message = MockMessage(question, interaction.channel, interaction.user, interaction.guild)
+                
+                async with interaction.channel.typing():
+                    response = self.user_chat_mode(user_id, chat_history, mock_message)
+                
+                # Include the question in the response for reference
+                formatted_response = f"**Question:** {question}\n\n{response}"
+                await interaction.followup.send(formatted_response)
+                self.remove_user(user_id)
+                self.end_summary(user_id, session_id, chat_history, guild_id)
+                
+            else:
+                # No question provided - enter conversation mode based on default_chat_mode
+                if default_chat_mode == "one_shot":
+                    # One-shot mode: wait for single response
+                    greeting = self.get_greeting(interaction.user)
+                    wave_emoji = self.personality.get_emoji('wave', '')
+                    await interaction.followup.send(f"{greeting} How can I assist you today? {wave_emoji}")
+                    
+                    # Wait for user response
+                    try:
+                        user_input = await self.bot.wait_for(
+                            'message',
+                            timeout=self.TIMEOUT_SECONDS,
+                            check=lambda msg: msg.author == interaction.user and msg.channel == interaction.channel
+                        )
+                        
+                        async with interaction.channel.typing():
+                            response = self.user_chat_mode(user_id, chat_history, user_input)
+                        
+                        await self.send_message(interaction.channel, response)
+                        self.remove_user(user_id)
+                        self.end_summary(user_id, session_id, chat_history, guild_id)
+                        
+                    except asyncio.TimeoutError:
+                        emoji = self.personality.get_emoji('abby_jump', '')
+                        await interaction.channel.send(f"Hey {interaction.user.mention}, I've gotta hop! {emoji}")
+                        self.remove_user(user_id)
+                        self.end_summary(user_id, session_id, chat_history, guild_id)
+                
+                else:
+                    # Multi-turn mode: full conversation loop
+                    greeting = self.get_greeting(interaction.user)
+                    wave_emoji = self.personality.get_emoji('wave', '')
+                    await interaction.followup.send(f"{greeting} How can I assist you today? {wave_emoji}")
+                    
+                    # Enter conversation loop
+                    await self.handle_conversation(self.bot, interaction, user_id, session_id, chat_history, max_exchanges)
+                # No question provided
+                if default_chat_mode == "one_shot":
+                    # One-shot mode: send greeting and close
+                    greeting = self.get_greeting(interaction.user)
+                    wave_emoji = self.personality.get_emoji('wave', '')
+                    await interaction.followup.send(f"{greeting} How can I assist you today? {wave_emoji}")
+                    self.remove_user(user_id)
+                    self.end_summary(user_id, session_id, chat_history, guild_id)
+                else:
+                    # Multi-turn mode: send greeting and enter conversation loop
+                    greeting = self.get_greeting(interaction.user)
+                    wave_emoji = self.personality.get_emoji('wave', '')
+                    await interaction.followup.send(f"{greeting} How can I assist you today? {wave_emoji}")
+                    
+                    # Enter conversation loop
+                    await self.handle_conversation(self.bot, interaction, user_id, session_id, chat_history, max_exchanges)
+        
+        except Exception as e:
+            logger.error(f"[/chat] Error: {e}", exc_info=True)
+            await interaction.followup.send("An error occurred. Please try again later.", ephemeral=True)
+            if user_id in self.active_instances:
+                self.remove_user(user_id)
 
 async def setup(bot):
     await bot.add_cog(Chatbot(bot))

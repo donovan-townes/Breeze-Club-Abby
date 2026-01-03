@@ -112,6 +112,12 @@ class HelpCategorySelect(Select):
                 value="chat"
             ),
             discord.SelectOption(
+                label="🧠 Memory & Privacy",
+                description="Memory system and data privacy",
+                emoji="🧠",
+                value="memory"
+            ),
+            discord.SelectOption(
                 label="🎨 Creative",
                 description="Image generation and creative tools",
                 emoji="🎨",
@@ -147,6 +153,7 @@ class HelpCategorySelect(Select):
             "giveaways": self._giveaways_embed(),
             "personas": self._personas_embed(),
             "chat": self._chat_embed(),
+            "memory": self._memory_embed(),
             "creative": self._creative_embed(),
             "admin": self._admin_embed()
         }
@@ -276,25 +283,99 @@ class HelpCategorySelect(Select):
     
     def _chat_embed(self) -> discord.Embed:
         embed = discord.Embed(
-            title="💬 Chat & AI",
-            description="Have conversations with Abby!",
+            title="💬 Chat & Conversations",
+            description="Have conversations with Abby and manage chat history!",
             color=discord.Color.teal()
         )
         embed.add_field(
-            name="How It Works",
+            name="How to Chat",
             value=(
-                "• Mention me or use my name to chat\n"
+                "**Option 1: Mention Mode** (if enabled)\n"
+                "• Just mention me or use my name\n"
+                "• I'll respond in conversation mode\n"
+                "\n**Option 2: Slash Commands**\n"
+                "• `/chat` - Multi-turn conversation\n"
+                "• `/chat question <your question>` - One-shot answer\n"
+                "\n**Features:**\n"
                 "• I remember context from recent messages\n"
-                "• Ask questions, get creative ideas!\n"
-                "• Use `/analyze` for conversation insights"
+                "• Ask follow-up questions naturally\n"
+                "• Memory system learns about you over time"
             ),
             inline=False
         )
         embed.add_field(
-            name="Commands",
+            name="Conversation Management",
             value=(
-                "`/analyze` - Analyze conversation patterns\n"
-                "`/chat clear` - Clear conversation history"
+                "`/conversation view` - See your past chats\n"
+                "`/conversation clear` - Delete your chat history\n"
+                "`/conversation export` - Download chats as JSON\n"
+                "`/memory view` - See memories Abby has of you\n"
+                "`/memory forget` - Delete specific memories\n"
+                "`/memory terms` - View privacy & consent"
+            ),
+            inline=False
+        )
+        embed.add_field(
+            name="💡 Tips",
+            value=(
+                "• `/chat question` is best for quick answers\n"
+                "• Regular `/chat` works best for conversations\n"
+                "• Storage can be toggled per-server by admins\n"
+                "• You can opt-out of memory collection anytime"
+            ),
+            inline=False
+        )
+        return embed
+    
+    def _memory_embed(self) -> discord.Embed:
+        embed = discord.Embed(
+            title="🧠 Memory & Privacy",
+            description="How Abby remembers you and your privacy controls",
+            color=discord.Color.blue()
+        )
+        embed.add_field(
+            name="What is Memory?",
+            value=(
+                "Abby uses an advanced memory system (TDOS Memory v1.2) to:\n"
+                "• Learn facts about your interests and preferences\n"
+                "• Understand conversation context better\n"
+                "• Remember important details across sessions\n"
+                "• Build a better understanding of you over time\n\n"
+                "**All memories are encrypted at rest!**"
+            ),
+            inline=False
+        )
+        embed.add_field(
+            name="Memory Commands",
+            value=(
+                "`/memory view` - See all memories Abby has of you\n"
+                "`/memory forget` - Delete a specific memory\n"
+                "`/memory export` - Download all your memories as JSON\n"
+                "`/memory opt_out` - Stop memory collection\n"
+                "`/memory terms` - View privacy policy & manage consent"
+            ),
+            inline=False
+        )
+        embed.add_field(
+            name="Privacy Controls",
+            value=(
+                "✅ **You have full control:**\n"
+                "• View what Abby remembers about you anytime\n"
+                "• Delete memories you don't want stored\n"
+                "• Opt out completely (disables memory learning)\n"
+                "• Export your data in standard JSON format\n"
+                "• Memories naturally decay over 90 days by default"
+            ),
+            inline=False
+        )
+        embed.add_field(
+            name="Admin Options",
+            value=(
+                "`/memory admin stats` - View guild memory stats\n"
+                "`/memory admin inspect <user>` - View user profile\n"
+                "`/memory admin purge_user <user>` - GDPR deletion\n"
+                "`/memory admin export_guild` - Export all guild memories\n"
+                "`/memory admin maintenance` - System maintenance"
             ),
             inline=False
         )
@@ -335,12 +416,34 @@ class HelpCategorySelect(Select):
             inline=False
         )
         embed.add_field(
+            name="Conversation Management",
+            value=(
+                "`/conversation admin clear_user <user>` - Delete user's chats\n"
+                "`/conversation admin clear_guild` - Delete all guild chats\n"
+                "`/conversation admin stats` - View conversation stats\n"
+                "`/conversation admin toggle_storage` - Enable/disable storage"
+            ),
+            inline=False
+        )
+        embed.add_field(
+            name="Memory Management",
+            value=(
+                "`/memory admin stats` - View memory statistics\n"
+                "`/memory admin inspect <user>` - View user's memory profile\n"
+                "`/memory admin purge_user <user>` - GDPR delete user memories\n"
+                "`/memory admin export_guild` - Export all guild memories\n"
+                "`/memory admin maintenance` - Run system maintenance"
+            ),
+            inline=False
+        )
+        embed.add_field(
             name="Bot Management",
             value=(
+                "`/server_config` - Configure server settings\n"
+                "`/announce` - Create announcements\n"
                 "`!sync ~` - Sync slash commands (owner)\n"
                 "`!reload` - Reload cogs (owner)\n"
-                "`!shutdown` - Stop bot (owner)\n"
-                "`/announce` - Create announcements"
+                "`!shutdown` - Stop bot (owner)"
             ),
             inline=False
         )
