@@ -50,6 +50,10 @@ class DiscordChannels:
     abby_chat: int = 1103490012500201632
     breeze_fam_role: int = 807664341158592543
     
+    # Content channels
+    breeze_memes: int = 1111136459072753664
+    welcome_leaf: int = 858231410682101782
+    
     # Giveaway & Events
     gust_channel: int = 802461884091465748
     giveaway_channel: int = 802461884091465748
@@ -63,6 +67,43 @@ class DiscordChannels:
     # Configurable channels from env
     motd_channel: int = field(default_factory=lambda: getenv_int("MOTD_CHANNEL_ID", "0"))
     nudge_channel: int = field(default_factory=lambda: getenv_int("NUDGE_CHANNEL_ID", "0"))
+    xp_channel: int = field(default_factory=lambda: getenv_int("XP_CHANNEL_ID", "802512963519905852"))
+    xp_abby_chat: int = field(default_factory=lambda: getenv_int("XP_ABBY_CHAT_ID", "1103490012500201632"))
+
+
+@dataclass
+class DiscordServerInfo:
+    """Discord Server/Guild Information"""
+    # Main guild ID (customize for your server)
+    guild_id: int = field(default_factory=lambda: getenv_int("DISCORD_GUILD_ID", "547471286801268777"))
+    
+    # Developer/Admin IDs
+    developer_id: int = 268871091550814209  # Customize for your developers
+    owner_user_id: int = field(default_factory=lambda: getenv_int("OWNER_USER_ID", "0"))
+
+
+@dataclass
+class DiscordRoles:
+    """Discord Role IDs"""
+    musician: int = 808129993460023366
+    streamer: int = 1131231727675768953
+    gamer: int = 1131920998350995548
+    developer: int = 1131231948862398625
+    artist: int = 1131703899842154576
+    nft_artist: int = 1131704410393813003
+    writer: int = 1131704091366654094
+    z8phyr_fan: int = 807678887777140786
+
+
+@dataclass
+class DiscordEmojis:
+    """Discord Custom Emojis and Reactions"""
+    leaf_heart: str = "<a:z8_leafheart_excited:806057904431693824>"
+    abby_run: str = "<a:Abby_run:1135375927589748899>"
+    abby_idle: str = "<a:Abby_idle:1135376647495884820>"
+    up_arrow: str = "⬆️"
+    down_arrow: str = "⬇️"
+    next_arrow: str = "➡️"
 
 
 @dataclass
@@ -80,7 +121,8 @@ class APIKeys:
     twitter_api_key: str = field(default_factory=lambda: os.getenv("TWITTER_API_KEY", ""))
     twitter_api_secret: str = field(default_factory=lambda: os.getenv("TWITTER_API_SECRET", ""))
     twitter_access_token: str = field(default_factory=lambda: os.getenv("TWITTER_ACCESS_TOKEN", ""))
-    twitter_access_secret: str = field(default_factory=lambda: os.getenv("TWITTER_ACCESS_TOKEN_SECRET", ""))
+    twitter_access_token_secret: str = field(default_factory=lambda: os.getenv("TWITTER_ACCESS_TOKEN_SECRET", ""))
+    twitter_bearer_token: str = field(default_factory=lambda: os.getenv("TWITTER_BEARER_TOKEN", ""))
     
     # Twitch
     twitch_client_id: str = field(default_factory=lambda: os.getenv("TWITCH_CLIENT_ID", ""))
@@ -136,7 +178,7 @@ class FeatureFlags:
     # Core features
     rag_enabled: bool = field(default_factory=lambda: getenv_bool("RAG_CONTEXT_ENABLED", "false"))
     nudge_enabled: bool = field(default_factory=lambda: getenv_bool("NUDGE_ENABLED", "false"))
-    image_auto_move: bool = field(default_factory=lambda: getenv_bool("IMAGE_AUTO_MOVE_ENABLED", "false"))
+    image_auto_move_enabled: bool = field(default_factory=lambda: getenv_bool("IMAGE_AUTO_MOVE_ENABLED", "false"))
     
     # Development
     dry_run_mode: bool = field(default_factory=lambda: getenv_bool("MIGRATE_DRY_RUN", "false"))
@@ -146,9 +188,10 @@ class FeatureFlags:
 class TimingConfig:
     """Timing, Intervals, and Cooldowns"""
     # XP System
-    xp_message_cooldown: int = field(default_factory=lambda: getenv_int("XP_MESSAGE_COOLDOWN_SECONDS", "60"))
-    xp_attachment_cooldown: int = field(default_factory=lambda: getenv_int("XP_ATTACHMENT_COOLDOWN_SECONDS", "600"))
-    xp_stream_interval: int = field(default_factory=lambda: getenv_int("XP_STREAM_INTERVAL_MINUTES", "5"))
+    xp_message_cooldown_seconds: int = field(default_factory=lambda: getenv_int("XP_MESSAGE_COOLDOWN_SECONDS", "60"))
+    xp_attachment_cooldown_seconds: int = field(default_factory=lambda: getenv_int("XP_ATTACHMENT_COOLDOWN_SECONDS", "600"))
+    xp_stream_interval_minutes: int = field(default_factory=lambda: getenv_int("XP_STREAM_INTERVAL_MINUTES", "5"))
+    xp_daily_start_hour: int = field(default_factory=lambda: getenv_int("XP_DAILY_START_HOUR", "5"))
     
     # Twitch
     twitch_poll_minutes: int = field(default_factory=lambda: getenv_int("TWITCH_POLL_MINUTES", "15"))
@@ -170,6 +213,9 @@ class PathConfig:
     songs_dir: Path = field(default_factory=lambda: Path(os.getenv("SONGS_DIR", "songs")))
     images_dir: Path = field(default_factory=lambda: Path(os.getenv("IMAGES_DIR", "Images")))
     audio_recordings: Path = field(default_factory=lambda: Path(os.getenv("AUDIO_ROOT", "Audio_Recordings")))
+    
+    # Configuration files
+    welcome_phrases_file: Path = field(default_factory=lambda: Path("abby_adapters/discord/data/welcome_phrases.json"))
     
     # TDOS Telemetry
     tdos_events_path: Path = field(default_factory=lambda: Path(os.getenv("TDOS_EVENTS_PATH", "shared/logs/events.jsonl")))
@@ -239,6 +285,9 @@ class MiscConfig:
 class BotConfig:
     """Master Configuration Object"""
     channels: DiscordChannels = field(default_factory=DiscordChannels)
+    roles: DiscordRoles = field(default_factory=DiscordRoles)
+    emojis: DiscordEmojis = field(default_factory=DiscordEmojis)
+    server_info: DiscordServerInfo = field(default_factory=DiscordServerInfo)
     api: APIKeys = field(default_factory=APIKeys)
     database: DatabaseConfig = field(default_factory=DatabaseConfig)
     llm: LLMConfig = field(default_factory=LLMConfig)
@@ -275,6 +324,26 @@ class BotConfig:
             issues.append(f"⚠️  WARNING: Working directory does not exist: {self.paths.working_dir}")
         
         return issues
+    
+    def load_welcome_phrases(self) -> list[str]:
+        """Load welcome phrases from JSON file, with fallback to defaults."""
+        import json
+        
+        try:
+            phrases_file = self.paths.working_dir / self.paths.welcome_phrases_file
+            if phrases_file.exists():
+                with open(phrases_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    return data.get('phrases', [])
+        except Exception as e:
+            print(f"⚠️  Failed to load welcome phrases: {e}")
+        
+        # Fallback to default phrases
+        return [
+            "Z8phyR here, and I'm really happy to have you here. Please feel free to tag me and chat!",
+            "Hey there! Z8phyR here, ready to chat. Don't hesitate to tag me and let's have a great conversation!",
+            "Z8phyR reporting for duty! Feel free to tag me and let's dive into a lively chat!",
+        ]
     
     def print_summary(self):
         """Print configuration summary for debugging."""

@@ -1,34 +1,20 @@
 import datetime
 import os
-from dotenv import load_dotenv
 from abby_core.economy.xp import increment_xp
-from abby_core.observability.logging import setup_logging, logging
+from abby_core.observability.logging import logging, log_startup_phase, STARTUP_PHASES
+from abby_adapters.discord.config import BotConfig
 import asyncio
 from discord.ext import tasks,commands
 
-
-load_dotenv()
-setup_logging()
 logger = logging.getLogger(__name__)
-
-def safe_int_env(key, default="0"):
-    """Safely parse int from env var, handling comments and invalid values"""
-    try:
-        value = os.getenv(key, default)
-        # Split on '#' to remove comments, strip whitespace
-        value = value.split('#')[0].strip()
-        return int(value) if value else int(default)
-    except (ValueError, AttributeError):
-        return int(default)
-
-ABBY_CHAT = safe_int_env("XP_ABBY_CHAT_ID", "0") or None
-BREEZE_LOUNGE = safe_int_env("XP_CHANNEL_ID", "0") or None
+config = BotConfig()
 
 class ExperienceGainManager(commands.Cog):
     def __init__(self, bot):
         # Rest of your initialisation here
         self.bot = bot
-        self.daily_message_channel_id = BREEZE_LOUNGE
+        self.daily_message_channel_id = config.channels.xp_channel or config.channels.breeze_lounge
+        self.abby_chat_id = config.channels.xp_abby_chat or config.channels.abby_chat
         self.daily_message = None
         self.daily_bonus_users = set()  # keep track of users who got the bonus
         self.last_attachment_time = {}
@@ -40,7 +26,7 @@ class ExperienceGainManager(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        logger.info(f"[💰] Experience Gain Manager ready")
+        logger.debug(f"[💰] Experience Gain Manager ready")
         self.run_tasks()
 
     def run_tasks(self):
@@ -48,7 +34,7 @@ class ExperienceGainManager(commands.Cog):
             self.daily_task.start()
         if not self.check_streaming.is_running():
             self.check_streaming.start()
-        logger.info(f"[💰] Experence Tasks Started")   
+        logger.debug(f"[💰] Experience tasks started")   
 
 
 
@@ -77,7 +63,7 @@ class ExperienceGainManager(commands.Cog):
         except AttributeError:
             logger.warning(f"[💰] Attribute 'self_stream' not found in VoiceState object for {member}")
    
-    @tasks.loop(minutes=int(os.getenv("XP_STREAM_INTERVAL_MINUTES", "5")))
+    @tasks.loop(minutes=config.timing.xp_stream_interval_minutes)
     async def check_streaming(self):
         # logger.info(f"[💰] Checking streaming users")
         for member in list(self.streaming_users):
@@ -95,7 +81,7 @@ class ExperienceGainManager(commands.Cog):
             return
 
         self.daily_message = await channel.send("Here is the daily bonus message, react to earn +5 EXP!")
-        await self.daily_message.add_reaction('<a:z8_leafheart_excited:806057904431693824>')
+        await self.daily_message.add_reaction(config.emojis.leaf_heart)
         self.daily_bonus_users = set()  # clear the list for the new message
 
     @daily_task.before_loop
@@ -103,15 +89,14 @@ class ExperienceGainManager(commands.Cog):
         await self.bot.wait_until_ready()  # wait until the bot logs in
 
         now = datetime.datetime.now()
-        if now.hour < 5:  # if it's before 5AM
-            wait_time = 5 - now.hour
-        else:  # if it's past 5AM
-            wait_time = 24 - (now.hour - 5)
+        daily_start_hour = config.timing.xp_daily_start_hour
+        if now.hour < daily_start_hour:
+            wait_time = daily_start_hour - now.hour
+        else:
+            wait_time = 24 - (now.hour - daily_start_hour)
 
-        logger.info(
-            f"[💰] ExperienceGainManager initialized. Next bonus message in {wait_time} hours.")
-        logger.info(
-            f"[💰] Stream Check initialized. Check is every [5] Minutes")
+        log_startup_phase(logger, STARTUP_PHASES["BACKGROUND_TASKS"],
+            f"[💰] Experience system scheduled (bonus: {wait_time}h, stream check: {config.timing.xp_stream_interval_minutes}m)")
 
         await asyncio.sleep(wait_time * 60 * 60)  # sleep until 5AM
 
@@ -120,7 +105,7 @@ class ExperienceGainManager(commands.Cog):
         if user == self.bot.user:
             return
         # Check if the reaction is on the daily message and is the custom emoji
-        if self.daily_message and reaction.message.id == self.daily_message.id and str(reaction.emoji) == '<a:z8_leafheart_excited:806057904431693824>':
+        if self.daily_message and reaction.message.id == self.daily_message.id and str(reaction.emoji) == config.emojis.leaf_heart:
             logger.info("Handling Reaction")
             # Check if the user has already received the bonus
             if user.id not in self.daily_bonus_users:
@@ -140,11 +125,12 @@ class ExperienceGainManager(commands.Cog):
         if message.author.bot:
             return
         
-        if BREEZE_LOUNGE and (not message.content.startswith('!')) and message.channel.id == BREEZE_LOUNGE:
+        breeze_lounge_id = config.channels.xp_channel or config.channels.breeze_lounge
+        if breeze_lounge_id and (not message.content.startswith('!')) and message.channel.id == breeze_lounge_id:
             # logger.info("[💰] USER typed in correct channel")
             # Check if the user has sent a message in the last minute
             last_message_time = self.last_message_time.get(user_id)
-            msg_cooldown = int(os.getenv("XP_MESSAGE_COOLDOWN_SECONDS", "60"))
+            msg_cooldown = config.timing.xp_message_cooldown_seconds
             if not last_message_time or (now - last_message_time).total_seconds() >= msg_cooldown:
                 # Update the last message time and increment the user's experience
                 self.last_message_time[user_id] = now
@@ -197,7 +183,7 @@ class ExperienceGainManager(commands.Cog):
         # Check for attachments independently of messages
         last_attachment_time = self.last_attachment_time.get(user_id)
         for attachment in message.attachments:
-            att_cooldown = int(os.getenv("XP_ATTACHMENT_COOLDOWN_SECONDS", "600"))
+            att_cooldown = config.timing.xp_attachment_cooldown_seconds
             if not last_attachment_time or (now - last_attachment_time).total_seconds() >= att_cooldown:
                 # Check if the attachment is an MP3 file
                 if attachment.content_type == 'audio/mpeg':

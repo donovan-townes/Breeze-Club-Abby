@@ -70,10 +70,7 @@ class QuotaManager:
         # Format: {(user_id, guild_id): {'date': date, 'count': int}}
         self._generation_tracking: Dict[Tuple[str, str], Dict] = {}
         
-        logger.info(f"[💾] Quota manager initialized")
-        logger.info(f"    Global limit: {max_global_storage_mb}MB")
-        logger.info(f"    Per-user limit: {max_user_storage_mb}MB")
-        logger.info(f"    Daily gen limit: {max_user_daily_gens}/day")
+        logger.debug(f"[💾] Quota manager initialized (global: {max_global_storage_mb}MB, user: {max_user_storage_mb}MB, daily: {max_user_daily_gens}/day)")
     
     def get_global_usage(self) -> Tuple[float, float, float]:
         """

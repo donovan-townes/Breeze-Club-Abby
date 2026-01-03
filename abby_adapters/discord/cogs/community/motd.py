@@ -1,5 +1,6 @@
-from abby_core.observability.logging import setup_logging, logging
+from abby_core.observability.logging import logging, log_startup_phase, STARTUP_PHASES
 from abby_core.llm.client import LLMClient
+from abby_adapters.discord.config import BotConfig
 import datetime
 import asyncio
 import discord
@@ -7,23 +8,17 @@ from discord import app_commands
 from discord.ext import tasks, commands
 from typing import Optional
 
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
-setup_logging()
 logger = logging.getLogger(__name__)
+config = BotConfig()
 
 class Motd(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         
-        # Load configuration from environment
-        self.motd_channel_id = int(os.getenv("MOTD_CHANNEL_ID", 0))
-        self.motd_start_hour = int(os.getenv("MOTD_START_HOUR", 5))
+        # Load configuration from centralized config
+        self.motd_channel_id = config.channels.motd_channel
+        self.motd_start_hour = config.timing.motd_start_hour
         self.last_motd: Optional[str] = None
-        
-        logger.info(f"[👋] MOTD initialized (channel: {self.motd_channel_id}, start: {self.motd_start_hour}:00)")
 
     async def generate_message(self) -> Optional[str]:
         """Generate a Message of the Day using LLM."""
@@ -74,7 +69,7 @@ class Motd(commands.Cog):
         motd_message = f"**Message of the Day**:\n{message_content}"
         try:
             message = await channel.send(motd_message)
-            await message.add_reaction('<a:z8_leafheart_excited:806057904431693824>')
+            await message.add_reaction(config.emojis.leaf_heart)
             logger.info("[👋] MOTD sent successfully")
             return True
         except Exception as e:
@@ -162,7 +157,8 @@ class Motd(commands.Cog):
         else:
             wait_hours = 24 - (now.hour - self.motd_start_hour)
         
-        logger.info(f"[👋] MOTD task scheduled. Next message in {wait_hours} hours.")
+        log_startup_phase(logger, STARTUP_PHASES["BACKGROUND_TASKS"],
+                         f"[👋] MOTD scheduled (channel: {self.motd_channel_id}, next: {wait_hours}h)")
         await asyncio.sleep(wait_hours * 3600)
 
 

@@ -1,30 +1,22 @@
-import os
-from dotenv import load_dotenv
 import discord
 from discord.ext import commands
-from abby_core.observability.logging import setup_logging, logging
+from abby_core.observability.logging import logging
+from abby_adapters.discord.config import BotConfig
 
-load_dotenv()
-setup_logging()
 logger = logging.getLogger(__name__)
-
-def _env_int(name: str, default: int | None = None) -> int | None:
-    val = os.getenv(name)
-    try:
-        return int(val) if val is not None else default
-    except ValueError:
-        return default
+config = BotConfig()
 
 class Moderation(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.enabled = os.getenv("IMAGE_AUTO_MOVE_ENABLED", "false").lower() == "true"
-        self.general_channel_id = _env_int("GENERAL_CHANNEL_ID")
-        self.memes_channel_id = _env_int("MEMES_CHANNEL_ID")
+        # Use centralized config for all settings
+        self.enabled = config.features.image_auto_move_enabled if hasattr(config.features, 'image_auto_move_enabled') else False
+        self.general_channel_id = config.channels.breeze_club_general
+        self.memes_channel_id = config.channels.breeze_memes
 
     @commands.Cog.listener()
     async def on_ready(self):
-        logger.info("[🪪] Moderation cog ready (image auto-move=%s)" % ("on" if self.enabled else "off"))
+        logger.debug("[🪪] Moderation cog ready (image auto-move=%s)" % ("on" if self.enabled else "off"))
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):

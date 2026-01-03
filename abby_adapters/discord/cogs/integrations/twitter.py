@@ -1,22 +1,22 @@
 import tweepy
-from dotenv import load_dotenv
-import os
-from abby_core.observability.logging import setup_logging, logging
+from abby_core.observability.logging import logging
+from abby_adapters.discord.config import BotConfig
 import time
-from discord.ext import commands,tasks 
+from discord.ext import commands, tasks
 
-# Load environment variables
-load_dotenv()
-setup_logging()
+config = BotConfig()
 
 class TwitterClient(commands.Cog):
+    """Twitter/X API integration for posting tweets and monitoring hashtags."""
+    
     def __init__(self):
         self.client = None
-        self.key = os.getenv("TWITTER_API_KEY")
-        self.keySecret = os.getenv("TWITTER_API_SECRET")
-        self.accessToken = os.getenv("TWITTER_ACCESS_TOKEN")
-        self.accessTokenSecret = os.getenv("TWITTER_ACCESS_TOKEN_SECRET")
-        self.bearer_token = None
+        # Use centralized config for Twitter API credentials
+        self.key = config.api.twitter_api_key
+        self.keySecret = config.api.twitter_api_secret
+        self.accessToken = config.api.twitter_access_token
+        self.accessTokenSecret = config.api.twitter_access_token_secret
+        self.bearer_token = config.api.twitter_bearer_token if hasattr(config.api, 'twitter_bearer_token') else None
         self.logger = logging.getLogger(__name__)
 
     # Connect to Twitter

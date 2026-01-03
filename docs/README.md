@@ -1,52 +1,337 @@
-## 📚 Documentation Index - Architectural Audit & Storage System Redesign
+# 📚 Abby Documentation
 
-### Overview
+Welcome to the comprehensive documentation for Abby, the AI-powered Discord bot for the Breeze Club community.
 
-Complete architectural audit of Abby bot, identification of critical issues, and redesign of the image storage system with quota management.
+## 🚀 Quick Navigation
+
+### For New Users
+
+👉 **[Getting Started](getting-started/)** — Installation, configuration, and quick start  
+👉 **[Features](features/)** — Learn what Abby can do  
+👉 **[Common Issues](getting-started/troubleshooting.md)** — Troubleshooting guide
+
+### For Developers
+
+👉 **[Architecture](architecture/)** — System design and code organization  
+👉 **[API Reference](api-reference/)** — Complete API documentation  
+👉 **[Contributing](contributing/)** — How to contribute code
+
+### For DevOps/SRE
+
+👉 **[Deployment](deployment/)** — Production deployment guides  
+👉 **[Monitoring](deployment/monitoring.md)** — Health checks and metrics  
+👉 **[Backup & Recovery](deployment/backup-recovery.md)** — Data protection
 
 ---
 
-## 📄 Documents (In Reading Order)
+## 📖 Documentation Structure
 
-### 1. **QUICK_SUMMARY.md** ⭐ START HERE
+### 🏁 [Getting Started](getting-started/)
 
-**Time**: 5-10 minutes  
-**What**: Executive summary of everything done
+Everything you need to get Abby running in your Discord server.
 
-Best for:
+**Contents:**
 
-- Getting a quick overview
-- Seeing what was fixed
-- Understanding next steps
-- Quick reference
+- **[Installation Guide](getting-started/installation.md)** — Step-by-step setup
+- **[Configuration Guide](getting-started/configuration.md)** — Environment variables and settings
+- **[Quick Start Tutorial](getting-started/quick-start.md)** — Get up and running in 10 minutes
+- **[Docker Deployment](getting-started/docker.md)** — Containerized deployment
+- **[Troubleshooting](getting-started/troubleshooting.md)** — Common issues and solutions
 
-### 2. **ARCHITECTURE.md** ⭐ ESSENTIAL
+**Time to complete**: 30-60 minutes for full setup
 
-**Time**: 20-30 minutes  
-**What**: Design principles, patterns, and decision framework
+---
 
-Best for:
+### 🏗️ [Architecture](architecture/)
 
-- Understanding the separation between core and adapters
-- Learning where to put new code
-- Seeing working examples
-- Common mistakes to avoid
-- Making architectural decisions
+Understand how Abby is designed, built, and structured.
 
-### 3. **STORAGE_SYSTEM.md** 📖 IMPLEMENTATION GUIDE
+**Contents:**
 
-**Time**: 20-30 minutes  
-**What**: Step-by-step guide to implement the new storage system
+- **[Architecture Overview](architecture/ARCHITECTURE.md)** ⭐ — Core design principles and patterns
+- **[Database Schema](architecture/database-schema.md)** — MongoDB collections and indexes
+- **[Storage System](architecture/STORAGE_SYSTEM.md)** — File management and quotas
+- **[LLM & RAG Architecture](architecture/llm-rag-architecture.md)** — AI system design
+- **[Cog System](architecture/cog-system.md)** — Command organization
+- **[Security Architecture](architecture/security.md)** — Security practices
 
-Best for:
+**Essential reading for**: Contributors, architects, and anyone adding features
 
-- Understanding the storage design
-- Code examples (before/after)
-- Migration steps for existing code
-- Directory structure
-- Troubleshooting
+---
 
-### 4. **STORAGE_API_REFERENCE.md** 🔍 QUICK REFERENCE
+### ✨ [Features](features/)
+
+Detailed guides for each of Abby's features and capabilities.
+
+**AI & Conversational:**
+
+- **[Conversational AI (Chatbot)](features/chatbot.md)** — Natural language conversations
+- **[RAG System](features/RAG_USAGE_GUIDE.md)** — Document-aware AI responses
+- **[TDOS Memory System](features/tdos-memory.md)** — Advanced memory and learning
+
+**Creative Tools:**
+
+- **[Image Generation](features/image-generation.md)** — AI-powered image creation
+- **[Text Analysis](features/text-analysis.md)** — Sentiment and content analysis
+
+**Economy & Progression:**
+
+- **[XP & Leveling System](features/economy-xp.md)** — Experience and progression
+- **[Banking & Currency](features/banking.md)** — User economy
+
+**Integrations:**
+
+- **[Twitch Integration](features/twitch.md)** — Live stream notifications
+- **[URL Handlers](features/url-handlers.md)** — Auto-embeds for links
+
+**Moderation:**
+
+- **[Auto-Moderation](features/moderation.md)** — Content filtering and nudges
+- **[Greetings & MOTD](features/greetings.md)** — Welcome messages
+
+---
+
+### 📘 [API Reference](api-reference/)
+
+Complete API documentation for developers.
+
+**Core Services:**
+
+- **[Storage API](api-reference/STORAGE_API_REFERENCE.md)** — File management
+- **[LLM Client API](api-reference/LLM_CONFIGURATION.md)** — Language models
+- **[RAG API](api-reference/rag-api.md)** — Vector search
+- **[Economy API](api-reference/economy-api.md)** — XP and banking
+- **[Database API](api-reference/database-api.md)** — MongoDB operations
+- **[Image Generation API](api-reference/image-generation-api.md)** — Stability AI
+- **[Persona API](api-reference/persona-api.md)** — Personality system
+- **[Security API](api-reference/security-api.md)** — Encryption
+- **[Logging API](api-reference/logging-api.md)** — Observability
+
+**For**: Developers building on or extending Abby
+
+---
+
+### 🚀 [Deployment](deployment/)
+
+Production deployment and infrastructure setup.
+
+**Deployment Guides:**
+
+- **[NSSM Deployment (Windows)](deployment/DEPLOYMENT_NSSM.md)** — Windows Service
+- **[systemd Deployment (Linux)](deployment/systemd-deployment.md)** — Linux Service
+- **[Docker Deployment](deployment/docker-deployment.md)** — Containers
+- **[Cloud Deployments](deployment/cloud/)** — AWS, Azure, GCP, DigitalOcean
+
+**Infrastructure:**
+
+- **[MongoDB Setup](deployment/mongodb-setup.md)** — Database configuration
+- **[Qdrant Setup](deployment/qdrant-setup.md)** — Vector database
+- **[Secrets Management](deployment/secrets-management.md)** — Credential security
+
+**Operations:**
+
+- **[Monitoring](deployment/monitoring.md)** — Health checks and metrics
+- **[Backup & Recovery](deployment/backup-recovery.md)** — Data protection
+- **[Maintenance](deployment/maintenance.md)** — Routine tasks
+
+**For**: DevOps engineers, system administrators, and production deployments
+
+---
+
+### 🤝 [Contributing](contributing/)
+
+Guidelines and resources for contributing to Abby.
+
+**Getting Started:**
+
+- **[Development Setup](contributing/development-setup.md)** — Local environment
+- **[Code Style Guide](contributing/code-style.md)** — Python standards
+- **[Testing Guide](contributing/testing.md)** — Writing tests
+- **[Pull Request Guide](contributing/pull-request-guide.md)** — Submission workflow
+
+**Contribution Areas:**
+
+- **[Adding New Features](contributing/adding-features.md)** — Feature development
+- **[Adding a New Cog](contributing/adding-cogs.md)** — Discord commands
+- **[Extending the LLM System](contributing/extending-llm.md)** — AI integrations
+- **[Adding Database Collections](contributing/adding-collections.md)** — Data models
+- **[API Integrations](contributing/api-integrations.md)** — External services
+
+**Community:**
+
+- **[Code of Conduct](contributing/code-of-conduct.md)** — Community standards
+- **[Recognition Program](contributing/recognition.md)** — Contributor credits
+
+**For**: Anyone wanting to contribute code, documentation, or ideas
+
+---
+
+## 🎯 Documentation by Role
+
+### 👤 I'm a Discord Server Admin
+
+**Goal**: Set up and manage Abby in my server
+
+**Read this:**
+
+1. [Installation Guide](getting-started/installation.md) — Get Abby running
+2. [Configuration Guide](getting-started/configuration.md) — Customize settings
+3. [Features Overview](features/) — Learn what Abby can do
+4. [Troubleshooting](getting-started/troubleshooting.md) — Fix common issues
+
+**Time**: 1-2 hours
+
+---
+
+### 💻 I'm a Developer Contributing to Abby
+
+**Goal**: Add features or fix bugs
+
+**Read this:**
+
+1. [Architecture Overview](architecture/ARCHITECTURE.md) — Understand the design
+2. [Code Style Guide](contributing/code-style.md) — Follow conventions
+3. [API Reference](api-reference/) — Learn the APIs
+4. [Pull Request Guide](contributing/pull-request-guide.md) — Submit changes
+
+**Time**: 2-3 hours to get oriented
+
+---
+
+### 🔧 I'm DevOps/SRE Deploying to Production
+
+**Goal**: Deploy and maintain Abby reliably
+
+**Read this:**
+
+1. [Deployment Guide](deployment/) — Choose deployment method
+2. [MongoDB Setup](deployment/mongodb-setup.md) — Configure database
+3. [Monitoring](deployment/monitoring.md) — Set up observability
+4. [Backup & Recovery](deployment/backup-recovery.md) — Protect data
+
+**Time**: 3-4 hours for full production setup
+
+---
+
+### 🎨 I'm Integrating Abby's Features into Another App
+
+**Goal**: Use Abby's core services programmatically
+
+**Read this:**
+
+1. [Architecture Overview](architecture/ARCHITECTURE.md) — Understand separation
+2. [API Reference](api-reference/) — Learn available APIs
+3. [Database Schema](architecture/database-schema.md) — Understand data models
+4. [Security Architecture](architecture/security.md) — Secure integration
+
+**Time**: 2-3 hours
+
+---
+
+## 📝 Key Documents (Start Here)
+
+### For Everyone
+
+- **[Main README](../README.md)** — Project overview and features
+- **[CONTRIBUTING.md](../CONTRIBUTING.md)** — Contribution guidelines
+
+### Most Referenced Docs
+
+1. **[Architecture Overview](architecture/ARCHITECTURE.md)** — System design (⭐ essential)
+2. **[Storage System](architecture/STORAGE_SYSTEM.md)** — File management
+3. **[RAG Usage Guide](features/RAG_USAGE_GUIDE.md)** — AI knowledge base
+4. **[LLM Configuration](api-reference/LLM_CONFIGURATION.md)** — AI setup
+5. **[NSSM Deployment](deployment/DEPLOYMENT_NSSM.md)** — Windows production
+
+---
+
+## 🔍 Finding What You Need
+
+### By Topic
+
+**Setting Up Abby:**
+
+- Local development → [Installation Guide](getting-started/installation.md)
+- Production deployment → [Deployment](deployment/)
+- Configuration → [Configuration Guide](getting-started/configuration.md)
+
+**Using Features:**
+
+- Chatbot → [Conversational AI](features/chatbot.md)
+- Image generation → [Image Generation](features/image-generation.md)
+- XP system → [Economy & XP](features/economy-xp.md)
+- Twitch → [Twitch Integration](features/twitch.md)
+
+**Building/Extending:**
+
+- Add commands → [Adding Cogs](contributing/adding-cogs.md)
+- Use APIs → [API Reference](api-reference/)
+- Understand design → [Architecture](architecture/)
+
+**Operations:**
+
+- Deploy → [Deployment Guides](deployment/)
+- Monitor → [Monitoring](deployment/monitoring.md)
+- Backup → [Backup & Recovery](deployment/backup-recovery.md)
+
+---
+
+## 📊 Documentation Coverage
+
+| Category            | Documents | Status       |
+| ------------------- | --------- | ------------ |
+| **Getting Started** | 5         | ✅ Complete  |
+| **Architecture**    | 7         | ✅ Complete  |
+| **Features**        | 12+       | ✅ Complete  |
+| **API Reference**   | 9         | 🔄 Expanding |
+| **Deployment**      | 10+       | ✅ Complete  |
+| **Contributing**    | 10+       | ✅ Complete  |
+
+**Total Documents**: 50+  
+**Last Major Update**: January 2026
+
+---
+
+## 🆘 Get Help
+
+### Documentation Issues
+
+- **Unclear or outdated?** [Open an issue](https://github.com/your-org/abby/issues/new?labels=documentation)
+- **Missing docs?** [Request new documentation](https://github.com/your-org/abby/issues/new?labels=documentation,enhancement)
+
+### Technical Support
+
+- **Discord**: [Breeze Club Server](https://discord.gg/yGsBGQAC49)
+- **GitHub Issues**: [Report a bug](https://github.com/your-org/abby/issues)
+- **Discussions**: [Ask questions](https://github.com/your-org/abby/discussions)
+
+### Contributing to Docs
+
+See [Documentation Style Guide](contributing/documentation-style.md) for guidelines on improving documentation.
+
+---
+
+## 🗺️ Documentation Roadmap
+
+### Current Focus
+
+- ✅ Core architecture documentation
+- ✅ API reference completion
+- ✅ Deployment guides
+- 🔄 Code examples and tutorials
+
+### Upcoming
+
+- Video tutorials for common tasks
+- Interactive API playground
+- Docusaurus site deployment
+- Multi-language support (Spanish, French)
+
+---
+
+**Built with ❤️ for the Breeze Club community**
+
+_"Documentation is love for future you and your team."_
 
 **Time**: 5-10 minutes per lookup  
 **What**: API documentation and code snippets

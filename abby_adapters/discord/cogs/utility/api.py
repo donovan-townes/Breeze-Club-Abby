@@ -4,11 +4,9 @@ from flask import Flask, request, jsonify
 import requests
 from discord.ext import commands
 import discord
-from abby_core.observability.logging import setup_logging, logging
+from abby_core.observability.logging import logging
 import aiohttp.web
 
-
-setup_logging()
 logger = logging.getLogger(__name__)
 
 

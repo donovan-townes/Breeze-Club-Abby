@@ -1,6 +1,9 @@
 from discord.ext import commands
 import discord
 from discord import app_commands
+from abby_adapters.discord.config import BotConfig
+
+config = BotConfig()
 
 
 
@@ -17,7 +20,7 @@ class ServerInfo(commands.Cog):
         member_count = guild.member_count
 
         owner_id = guild.owner_id
-        dev_id = 268871091550814209
+        dev_id = config.server_info.developer_id
         guild_owner = await guild.fetch_member(owner_id)
 
         # server icon

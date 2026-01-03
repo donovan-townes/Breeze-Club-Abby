@@ -1,19 +1,18 @@
 import discord
 from discord.ext import commands
-from abby_core.observability.logging import setup_logging, logging
+from abby_core.observability.logging import logging
+from abby_adapters.discord.config import BotConfig
 
-setup_logging()
 logger = logging.getLogger(__name__)
-
-# List of authorized user IDs who can use shutdown/restart commands
-AUTHORIZED_USERS = [
-    246030816692404234,  # Add your Discord user ID here
-]
-
+config = BotConfig()
 
 class ShutdownCommands(commands.Cog):
+    """Administrative commands for graceful shutdown and restart."""
+    
     def __init__(self, bot):
         self.bot = bot
+        # Authorized users from config (fallback to owner check)
+        self.authorized_users = config.server_info.owner_user_id
 
     @commands.command(name='shutdown', aliases=['stop'])
     @commands.is_owner()  # Only bot owner can use this

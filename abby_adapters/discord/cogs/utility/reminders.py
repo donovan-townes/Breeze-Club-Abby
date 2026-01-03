@@ -1,10 +1,10 @@
 from discord.ext import commands
 import asyncio
-from abby_core.observability.logging import setup_logging, logging
+from abby_core.observability.logging import logging
 import re
 from discord import app_commands
 import discord
-setup_logging
+
 logger = logging.getLogger(__name__)
 
 class RemindMe(commands.Cog):

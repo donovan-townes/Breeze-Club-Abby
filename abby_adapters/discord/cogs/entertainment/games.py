@@ -15,15 +15,16 @@ import discord
 from discord import app_commands
 from discord.ext import commands, tasks
 from discord.ui import View, Button
-from abby_core.observability.logging import setup_logging, logging
+from abby_core.observability.logging import logging
+from abby_adapters.discord.config import BotConfig
 from abby_core.economy.xp import increment_xp
 from datetime import datetime, time
 import random
 import asyncio
 
-setup_logging()
 logger = logging.getLogger(__name__)
 
+config = BotConfig()
 
 class EmojiGameView(View):
     """View with emoji buttons for the game."""
@@ -103,9 +104,9 @@ class GameCommands(commands.GroupCog, name="game"):
             "🎭", "🎪", "🎸", "🎺", "🎲", "🎯"
         ]
         
-        # Channel configuration
-        self.game_channel_id = 802512963519905852  # Breeze Lounge
-        self.guild_id = 547471286801268777
+        # Use centralized config for channel and guild
+        self.game_channel_id = config.channels.breeze_lounge
+        self.guild_id = config.server_info.guild_id
         
         logger.info("[🎮] Modern Game Commands loaded")
         
@@ -287,4 +288,3 @@ class GameCommands(commands.GroupCog, name="game"):
 async def setup(bot: commands.Bot):
     """Add cog to bot."""
     await bot.add_cog(GameCommands(bot))
-    logger.info("[🎮] Modern Game Commands loaded successfully")

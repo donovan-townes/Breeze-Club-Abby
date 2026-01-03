@@ -1,154 +1,516 @@
-# Abby
+# Abby 🐰
 
-## Discord Bot for the Breeze Club Discord Server
+## AI-Powered Creative Assistant for Discord
 
 [![Discord](https://img.shields.io/discord/819650821808273408?color=7289da&logo=discord&logoColor=white)](https://discord.gg/yGsBGQAC49)
-[![Python](https://img.shields.io/badge/python-3.9.1-blue.svg?logo=python&logoColor=white)](https://www.python.org/downloads/release/python-391/)
-![discord.py](https://img.shields.io/badge/discord.py-1.7.3-blue.svg?logo=discord&logoColor=white)
+[![Python](https://img.shields.io/badge/python-3.12-blue.svg?logo=python&logoColor=white)](https://www.python.org/)
+[![discord.py](https://img.shields.io/badge/discord.py-2.6.4-blue.svg?logo=discord&logoColor=white)](https://discordpy.readthedocs.io/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-7.0-green.svg?logo=mongodb&logoColor=white)](https://www.mongodb.com/)
 
-[Join the Discord Server](https://discord.gg/yGsBGQAC49)
+[Join the Breeze Club Discord](https://discord.gg/yGsBGQAC49) | [Documentation](docs/) | [Contributing](CONTRIBUTING.md)
 
 ---
 
 ## About
 
-Abby is a creative assistant Discord bot for the Breeze Club community, designed to support artists, producers, and music enthusiasts. Built with Python and [discord.py](https://discordpy.readthedocs.io/en/stable/), Abby integrates with TDOS (Townes Digital Operating System) for governance signals and observability.
+Abby is a next-generation Discord bot built for the **Breeze Club** creative community. Designed to support artists, producers, and music enthusiasts, Abby combines advanced AI capabilities with robust community management tools.
 
-**Now featuring:**
+Built with **clean architecture** principles, Abby separates platform-agnostic business logic (`abby_core`) from Discord-specific implementations (`abby_adapters/discord`), making it modular, testable, and adaptable to future platforms.
 
-- 🤖 **LLM Integration** - Ollama-first (local inference) with OpenAI fallback
-- 📚 **RAG System** - Retrieval-Augmented Generation for reference documents
-- 🎨 **Moderation** - Auto-move images, engagement nudges, XP tuning
-- 🎥 **Twitch Integration** - Live notifications with slash commands
-- 🔄 **Migration Tools** - Chroma → Qdrant vector store migration
+### ✨ Key Features
 
-Abby is under active development as part of a comprehensive modernization effort. Check out [PLAN_ABBY.md](PLAN_ABBY.md) for the full roadmap.
-
-## Features
-
-### Core Systems
-
-- **LLM Abstraction** - Provider-agnostic AI (Ollama primary, OpenAI fallback)
-- **RAG Foundation** - Vector-based knowledge retrieval (Chroma/Qdrant)
-- **TDOS Integration** - Governance events, heartbeat, error logging
-- **MongoDB Unified Schema** - Tenant-scoped data model
-
-### Engagement & Moderation
-
-- **XP System** - Configurable rate limits, cooldowns, bonuses
-- **Moderation** - Auto-move images, gentle nudges for inactive users
-- **Economy** - Banking, rewards, creative services catalog
-
-### Creative Tools
-
-- **Chatbot** - AI-powered conversations with RAG context
-- **Image Generation** - Artist promotion and creative visuals
-- **Script Generation** - Text generation for captions, bios, descriptions
-
-### Integrations
-
-- **Twitch** - Live notifications, user linking, auto-polling
-- **URL Handlers** - Auto-embeds for YouTube, Twitch, social media
-- **Greetings** - Welcome messages, MOTD, announcements
+- **🤖 Conversational AI** — Context-aware chatbot powered by LLM (OpenAI/Ollama) with RAG for long-term memory
+- **🎨 Image Generation** — AI-powered image creation with Stability AI, smart quota management, and user-level storage
+- **📊 Economy & Leveling** — XP system with cooldowns, level-based rewards, and guild-specific progression
+- **📚 RAG Knowledge Base** — Retrieval-Augmented Generation for document-aware conversations
+- **🎥 Twitch Integration** — Live stream notifications, user linking, and automatic status updates
+- **💾 TDOS Memory** — Advanced memory decay, relational learning, and long-term context retention
+- **🛡️ Moderation** — Auto-moderation, content nudges, and configurable policies
+- **🔐 Security** — Encrypted conversation storage and secure credential management
 
 ---
 
-## Quick Start
+## Architecture
 
-See [docs/QUICK_START_PHASE_5_6.md](docs/QUICK_START_PHASE_5_6.md) for installation and configuration.
+Abby follows **clean architecture** principles with clear separation of concerns:
 
-**TL;DR:**
+```
+├── abby_core/              # Platform-agnostic business logic
+│   ├── database/           # MongoDB schemas & queries
+│   ├── llm/                # LLM clients (OpenAI, Ollama)
+│   ├── rag/                # Vector databases (Qdrant, Chroma)
+│   ├── economy/            # XP, leveling, banking
+│   ├── generation/         # Image generation APIs
+│   ├── storage/            # File management & quotas
+│   ├── personality/        # Bot personas & response patterns
+│   ├── security/           # Encryption & authentication
+│   └── observability/      # Logging & telemetry
+│
+├── abby_adapters/discord/  # Discord-specific implementations
+│   ├── cogs/               # Command implementations (organized by category)
+│   │   ├── admin/          # Admin commands (RAG, moderation, shutdown)
+│   │   ├── creative/       # Creative tools (chatbot, images, personas)
+│   │   ├── economy/        # Economy commands (bank, XP, leaderboard)
+│   │   ├── integrations/   # External services (Twitch, Twitter, URL handlers)
+│   │   └── utility/        # Utility commands (ping, info, reminders)
+│   ├── core/               # Discord infrastructure (command loader)
+│   └── config.py           # Centralized configuration
+│
+├── tdos_memory/            # Advanced memory system (decay, extraction, envelope)
+├── docs/                   # Documentation (architecture, guides, API reference)
+└── launch.py               # Bot entry point
+```
 
-```bash
-# Clone and install
-git clone <repo>
-cd Abby_Discord_Latest
-python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
+See [docs/architecture/ARCHITECTURE.md](docs/architecture/ARCHITECTURE.md) for detailed architectural guidelines.
 
-# Configure
-cp .env.example .env
-# Edit .env with your Discord token, MongoDB URI, channel IDs
+---
 
-# Run
-python main.py
+## 🚀 Quick Start
+
+### Prerequisites
+
+- **Python 3.12+** (recommended: 3.12.0 or later)
+- **MongoDB 7.0+** (local or [MongoDB Atlas](https://www.mongodb.com/cloud/atlas))
+- **Discord Bot Token** ([Discord Developer Portal](https://discord.com/developers/applications))
+- **API Keys** (optional):
+  - OpenAI API key for GPT models
+  - Stability AI key for image generation
+  - Twitch client ID/secret for live notifications
+
+### Installation
+
+1. **Clone the repository**
+
+   ```bash
+   git clone https://github.com/your-org/Abby_Discord_Latest.git
+   cd Abby_Discord_Latest
+   ```
+
+2. **Create virtual environment**
+
+   ```bash
+   python -m venv .venv
+
+   # Windows
+   .venv\Scripts\activate
+
+   # Linux/Mac
+   source .venv/bin/activate
+   ```
+
+3. **Install dependencies**
+
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Configure environment variables**
+
+   ```bash
+   cp .env.example .env
+   # Edit .env with your credentials
+   ```
+
+   **Minimum required `.env` configuration:**
+
+   ```env
+   # Discord
+   ABBY_TOKEN=your_discord_bot_token_here
+
+   # MongoDB
+   MONGO_URI=mongodb://localhost:27017/
+   MONGO_DB_NAME=Abby_Database
+
+   # Optional: AI Services
+   OPENAI_API_KEY=your_openai_key_here
+   STABILITY_API_KEY=your_stability_key_here
+   ```
+
+5. **Initialize database (optional)**
+
+   ```bash
+   python scripts/initialize_database.py
+   ```
+
+6. **Run Abby**
+   ```bash
+   python launch.py
+   ```
+
+### First Steps
+
+Once Abby is online:
+
+1. **Test basic functionality**: `/ping`
+2. **Check bot status**: `/info`
+3. **Start a conversation**: "Hey Abby, how are you?"
+4. **Generate an image**: `/imagine prompt="a cute rabbit in a meadow"`
+
+See [docs/getting-started/](docs/getting-started/) for detailed setup guides.
+
+---
+
+## 📚 Documentation
+
+### Getting Started
+
+- **[Installation Guide](docs/getting-started/installation.md)** — Step-by-step setup
+- **[Configuration](docs/getting-started/configuration.md)** — Environment variables and settings
+- **[Deployment](docs/deployment/)** — Production deployment with NSSM/systemd
+
+### Architecture
+
+- **[Architecture Overview](docs/architecture/ARCHITECTURE.md)** — Design principles and patterns
+- **[Database Schema](docs/architecture/database-schema.md)** — MongoDB collections and indexes
+- **[Storage System](docs/architecture/STORAGE_SYSTEM.md)** — File management and quotas
+
+### Features
+
+- **[Conversational AI](docs/features/chatbot.md)** — LLM configuration and RAG integration
+- **[Image Generation](docs/features/image-generation.md)** — Stability AI integration and quotas
+- **[Economy & XP](docs/features/economy-xp.md)** — Leveling system and rewards
+- **[Twitch Integration](docs/features/twitch.md)** — Live notifications and user linking
+- **[RAG System](docs/features/RAG_USAGE_GUIDE.md)** — Knowledge base and document retrieval
+
+### API Reference
+
+- **[Storage API](docs/api-reference/STORAGE_API_REFERENCE.md)** — File management methods
+- **[LLM Configuration](docs/api-reference/LLM_CONFIGURATION.md)** — LLM client setup
+- **[Core Modules](docs/api-reference/)** — Complete API documentation
+
+### Contributing
+
+- **[Contributing Guide](CONTRIBUTING.md)** — How to contribute
+- **[Code Style](docs/contributing/code-style.md)** — Python standards
+- **[Testing Guide](docs/contributing/testing.md)** — Writing and running tests
+
+---
+
+## 🎮 Commands
+
+Abby uses **slash commands** for most interactions. Type `/` in Discord to see available commands.
+
+### 🔧 Admin Commands
+
+| Command              | Description                                          | Permission Required |
+| -------------------- | ---------------------------------------------------- | ------------------- |
+| `/rag_ingest`        | Ingest documents into RAG knowledge base             | Administrator       |
+| `/rag_query`         | Query the RAG knowledge base                         | Administrator       |
+| `/moderation_config` | Configure auto-moderation settings                   | Administrator       |
+| `/persona <name>`    | Change Abby's personality (bunny, kitten, owl, etc.) | Administrator       |
+| `/clear_conv <user>` | Clear a user's conversation history                  | Administrator       |
+| `/sync_slash`        | Sync slash commands with Discord                     | Administrator       |
+| `/shutdown`          | Gracefully shut down the bot                         | Administrator       |
+| `/reload <cog>`      | Reload a specific cog without restarting             | Administrator       |
+
+### 🎨 Creative Commands
+
+| Command            | Description                                  | Example                                              |
+| ------------------ | -------------------------------------------- | ---------------------------------------------------- |
+| `/imagine`         | Generate AI images with Stability AI         | `/imagine prompt:"cyberpunk rabbit" style:neon-punk` |
+| `/analyze`         | Analyze text for sentiment, keywords, themes | `/analyze text:"Check out this track!"`              |
+| **Conversational** | Chat naturally with Abby by mentioning her   | "Hey Abby, what's your favorite genre?"              |
+
+**Chatbot Triggers:**
+
+- Summon: "hey abby", "hi abby", "@Abby", or direct mentions
+- Dismiss: "thanks abby", "bye abby", "that's all"
+- Auto-dismiss: 60 seconds of inactivity
+
+**Personality Personas:**
+
+- `bunny` (default) — Energetic, creative, supportive
+- `kitten` — Playful, curious, affectionate
+- `owl` — Wise, analytical, thoughtful
+- `squirrel` — Energetic, scattered, enthusiastic
+- `fox` — Clever, witty, mischievous
+- `panda` — Calm, zen, chill
+- `kiki` — Custom personality (configurable)
+
+### 💰 Economy Commands
+
+| Command                | Description                          |
+| ---------------------- | ------------------------------------ |
+| `/balance [user]`      | Check your or another user's balance |
+| `/daily`               | Claim daily XP bonus                 |
+| `/leaderboard`         | View top users by XP/level           |
+| `/pay <user> <amount>` | Transfer currency to another user    |
+| `/shop`                | Browse available items and services  |
+
+### 🎥 Twitch Integration
+
+| Command                    | Description                          |
+| -------------------------- | ------------------------------------ |
+| `/twitch link <username>`  | Link your Twitch account             |
+| `/twitch unlink`           | Unlink your Twitch account           |
+| `/twitch check <username>` | Check if a Twitch user is live       |
+| `/twitch notify`           | Configure live notification settings |
+
+**Auto-notifications**: Abby automatically posts when linked users go live.
+
+### 🛠️ Utility Commands
+
+| Command                    | Description                              |
+| -------------------------- | ---------------------------------------- |
+| `/ping`                    | Check bot latency and responsiveness     |
+| `/info`                    | Display bot version, uptime, and stats   |
+| `/status`                  | Check service health (MongoDB, LLM, RAG) |
+| `/remind <time> <message>` | Set a reminder                           |
+| `/userinfo [user]`         | Get detailed user information            |
+
+### 🔗 URL Handlers (Automatic)
+
+Abby automatically enhances links from:
+
+- **YouTube** — Rich embeds with thumbnails
+- **Twitter/X** — Tweet content previews
+- **Twitch** — Clip embeds and stream info
+- **SoundCloud** — Track embeds with metadata
+
+---
+
+## 💡 Usage Examples
+
+### Conversational AI with RAG
+
+```
+User: Hey Abby, what's the best way to mix vocals?
+Abby: Great question! Based on our production docs, here are the key steps:
+      1. Start with gain staging (peak around -6dB)
+      2. Apply EQ to remove mud (200-400Hz) and boost presence (3-5kHz)
+      3. Add compression (3:1 ratio, medium attack/release)
+      4. Use reverb/delay sparingly for depth
+
+      Want me to elaborate on any of these?
+```
+
+### Image Generation with Quotas
+
+```
+/imagine prompt:"a rabbit producer making beats in a neon-lit studio" style:cyberpunk
+
+🎨 Generating image... (2/10 daily generations remaining)
+✅ Image created! Saved to your profile gallery.
+📊 Storage: 2.3 MB / 50 MB used
+```
+
+### XP System
+
+```
+User: *Posts a helpful tutorial*
+Abby: 🌟 +50 XP! You're now level 12!
+      Keep sharing great content! Next level: 250 XP
 ```
 
 ---
 
-## Documentation
+## 🔧 Configuration
 
-- 📋 **[PLAN_ABBY.md](PLAN_ABBY.md)** - Full modernization roadmap
-- 🚀 **[Quick Start](docs/QUICK_START_PHASE_5_6.md)** - Get up and running in 5 minutes
-- 📚 **[RAG Usage Guide](docs/RAG_USAGE_GUIDE.md)** - Comprehensive RAG workflow for Discord
-- 🛠️ **[Phase 5/6 Summary](docs/PHASE_5_6_SUMMARY.md)** - Moderation, Twitch, Qdrant features
-- ⚙️ **[LLM Configuration](docs/LLM_CONFIGURATION.md)** - LLM abstraction setup
-- 🔄 **[MongoDB Migration](docs/MONGODB_MIGRATION_CHANGES.md)** - Unified schema details
-- 🪪 **[Moderation & Qdrant](docs/MODERATION_AND_QDRANT.md)** - Config reference
+### Environment Variables
+
+Key configuration options in `.env`:
+
+```env
+# Core Settings
+ABBY_TOKEN=                      # Discord bot token
+MONGO_URI=                       # MongoDB connection string
+LOG_LEVEL=INFO                   # Logging level (DEBUG, INFO, WARNING, ERROR)
+
+# AI Services
+OPENAI_API_KEY=                  # OpenAI API key
+OLLAMA_HOST=http://localhost:11434  # Local Ollama endpoint
+STABILITY_API_KEY=               # Stability AI key for image generation
+RAG_CONTEXT_ENABLED=true         # Enable RAG knowledge retrieval
+
+# Vector Databases
+QDRANT_HOST=localhost            # Qdrant host
+QDRANT_PORT=6333                 # Qdrant port
+QDRANT_API_KEY=                  # Optional: Qdrant API key
+CHROMA_PERSIST_DIR=./chroma_db   # ChromaDB storage directory
+
+# Storage & Quotas
+MAX_GLOBAL_STORAGE_MB=5000       # Total bot storage limit
+MAX_USER_STORAGE_MB=50           # Per-user storage limit
+MAX_USER_DAILY_GENS=10           # Daily image generation limit
+CLEANUP_DAYS=30                  # Auto-delete files after N days
+
+# XP System
+XP_BASE_AMOUNT=10                # Base XP per message
+XP_COOLDOWN_SECONDS=60           # Cooldown between XP gains
+XP_MESSAGE_BONUS=5               # Bonus XP for longer messages
+XP_MEDIA_BONUS=10                # Bonus XP for media attachments
+
+# Twitch Integration
+TWITCH_CLIENT_ID=                # Twitch app client ID
+TWITCH_CLIENT_SECRET=            # Twitch app secret
+TWITCH_POLL_INTERVAL=300         # Check streams every N seconds
+
+# Moderation
+AUTO_MOVE_IMAGES=true            # Auto-move images to correct channels
+NUDGE_INACTIVE_USERS=true        # Send engagement nudges
+NUDGE_CHANNEL_ID=123456789       # Channel for nudge messages
+```
+
+See [docs/getting-started/configuration.md](docs/getting-started/configuration.md) for full configuration reference.
+
+### Channel IDs
+
+Configure Discord channel IDs in `abby_adapters/discord/config.py`:
+
+```python
+@dataclass
+class DiscordChannels:
+    breeze_lounge: int = 802512963519905852      # Main chat
+    abby_chat: int = 1103490012500201632         # Abby conversation channel
+    giveaway_channel: int = 802461884091465748   # Giveaway announcements
+    radio_channel: int = 839379779790438430      # Voice/radio channel
+    test_channel: int = 1103490012500201632      # Testing
+```
 
 ---
 
-## Commands
+## 🧩 Core Technologies
 
-Admin commands are only available to users with the `Administrator` permission. Moderator commands are only available to users with the `Moderator` permission. All other commands are available to everyone. The default prefix is `!`. You can change the prefix in the `main.py` or create a command to do so.
-
-### Admin Commands
-
-#### `clear_conv <user>`
-
-Clears the conversation of a user. This is useful if the chatbot is stuck in a loop or is otherwise misbehaving.
-
-#### `persona <persona>`
-
-Sets the chatbot's persona. This is useful if you want to change the chatbot's personality. There are currently 6 personas: `bunny` (default), `kitten`, `owl`, `squirrel`, `fox`, and `panda`.
-
-#### `personality <#>`
-
-Sets the personality strength of Abby. This is useful if you want to change Abby's creativity in her response. The strength can be any number between 0 and 1, with 0 being the weakest and 1 being the strongest. The default is 0.5.
-
-#### `record` - Not Implemented Fully
-
-This starts an audio recording in the voice channel of the user who issued the command. The recording will stop after 10 seconds or when the user leaves the voice channel. The recording will be saved to the `recordings` folder.
-
-##### `update_log`
-
-This command updates the bot's log file. This is useful for tracking logs without having to restart the bot. It automatically saves to "logs/".
-
-### Image Commands
-
-Image commands are built as default commands and as slash commands. This is to demonstrate both methods of creating commands. The default commands are prefixed with `!` and the slash commands are prefixed with `/`. The slash commands are only available in servers that have the bot added to them. The default commands are available in all servers.
-
-#### `!imagine <text> <style_preset> (optional)` or `/imagine <text> <style_preset>(optional)`
-
-This utilizes Stability AI's API to generate an image based upon the text provided. You can learn more about this command in the [Image Generation](#image-generation) section below. (To be added)
-
-##### `meme`
-
-This pulls a random meme from a specified channel (#breeze-memes) and posts it in the current channel. It also has a "popular" weighting that will pull memes from the #breeze-memes channel that have a higher amount of reactions. This is useful for pulling the best memes from the channel.
-
-### More Commands (To be added)
+- **[discord.py](https://discordpy.readthedocs.io/)** — Discord bot framework
+- **[MongoDB](https://www.mongodb.com/)** — NoSQL database for user data, XP, economy
+- **[OpenAI](https://openai.com/)** / **[Ollama](https://ollama.ai/)** — LLM providers for conversational AI
+- **[Qdrant](https://qdrant.tech/)** / **[ChromaDB](https://www.trychroma.com/)** — Vector databases for RAG
+- **[Stability AI](https://stability.ai/)** — Image generation API
+- **TDOS Memory** — Advanced memory decay and relational learning system
+- **[aiohttp](https://docs.aiohttp.org/)** — Async HTTP for external APIs
+- **[cryptography](https://cryptography.io/)** — Encryption for sensitive data
 
 ---
 
-## Chatbot
+## 🚀 Roadmap
 
-Abby's most notable feature is her chatbot. She uses the [OpenAI API](https://openai.com/) to generate responses to messages. She has a few different personas that you can set her to. You can also set her personality strength. The default persona is `bunny` and the default personality strength is 0.5. You start up a conversation with Abby by using a summon word such as `hey abby` or anything that is in the `summon.json` file, She will start interacting with the user and continue to do so until the user dismisses her or a minute passes. The conversation with the user is saved to a database (Mongo Database) and is encrypted. You can clear this database by using the `clear_conv` command. This is useful if the conversation logs are too long.
+### Current Focus
 
-## Image Generation
+- ✅ Clean architecture refactor (core/adapters separation)
+- ✅ Unified MongoDB schema
+- ✅ RAG system with Qdrant/Chroma
+- ✅ Advanced memory system (TDOS Memory v1.0)
+- ✅ Storage system with quota management
+- ✅ Twitch live notifications
 
-Abby has a few image generation commands. These commands utilize the [Stability AI API](https://stability-ai.com/). You can learn more about the API [here](https://stability-ai.com/docs).
+### Upcoming Features
 
-## Other Awesome Features (To be added)
+- 🔄 **Enhanced Moderation** — AI-powered content filtering and context-aware moderation
+- 🔄 **Music Commands** — Spotify/SoundCloud integration, playlist management
+- 🔄 **Community Events** — Giveaways, polls, scheduled events
+- 🔄 **Analytics Dashboard** — Web dashboard for server insights
+- 🔄 **Voice Commands** — Voice channel interaction and audio processing
+- 🔄 **Multi-Guild Support** — Per-guild configurations and isolated data
 
-This will be a evolving documentation as the bot is still under development. I will be adding more features as I go along. If you have any suggestions, please post them in the Discord server. If you want to contribute, please contact me on Discord. (I'm `@z8phyr_`)
+See [GitHub Issues](https://github.com/your-org/abby/issues) for detailed feature requests and bug reports.
 
-## Credits
+---
 
-Thanks to brndndiaz for helping me with setting up a lot of the bot's features. You can check out his work [here](https://brndndiaz.dev).
+## 🤝 Contributing
 
-Thanks to the [Breeze Club](https://discord.gg/yGsBGQAC49) members for being awesome and for letting me make this bot for them.
+We welcome contributions! Whether it's bug fixes, new features, or documentation improvements.
 
-## License
+**Important**: Direct pushes to `main` are disabled. All changes must go through Pull Requests.
 
-This project is not licensed. You are free to use it however you want. I would appreciate it if you gave me credit for it, but it's not required.
+### Quick Contribution Guide
+
+1. **Fork** the repository
+2. **Create a branch**: `git checkout -b feature/your-feature-name`
+3. **Make changes** following our [code style](docs/contributing/code-style.md)
+4. **Test thoroughly** in your development environment
+5. **Submit a PR** with clear description and tests
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
+
+### Development Setup
+
+```bash
+# Clone your fork
+git clone https://github.com/your-username/Abby_Discord_Latest.git
+cd Abby_Discord_Latest
+
+# Create feature branch
+git checkout -b feature/my-new-feature
+
+# Set up development environment
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+
+# Configure test environment
+cp .env.example .env
+# Edit .env with test credentials
+
+# Run the bot
+python launch.py
+```
+
+### Areas We Need Help
+
+- 🐛 **Bug Fixes** — Check [Issues](https://github.com/your-org/abby/issues?q=is%3Aissue+is%3Aopen+label%3Abug)
+- 📝 **Documentation** — Improve guides and API docs
+- 🎨 **UI/UX** — Better Discord embeds and interactions
+- 🧪 **Testing** — Add unit/integration tests
+- 🌐 **Integrations** — New platform integrations (Spotify, YouTube Music, etc.)
+
+---
+
+## 📋 Project Status
+
+![Development Status](https://img.shields.io/badge/status-active%20development-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)
+![Coverage](https://img.shields.io/badge/coverage-in%20progress-yellow.svg)
+
+**Current Version**: `v2.0.0-beta`  
+**Last Updated**: January 2026  
+**Active Contributors**: 2  
+**Open Issues**: [View on GitHub](https://github.com/your-org/abby/issues)
+
+---
+
+## 📜 License
+
+This project is **not licensed**. You are free to use, modify, and distribute it as you wish.
+
+Attribution is appreciated but not required. If you use Abby or parts of its codebase, a mention would be awesome! 🙏
+
+---
+
+## 🙏 Acknowledgments
+
+- **[brndndiaz](https://brndndiaz.dev)** — Core architecture, MongoDB integration, and deployment infrastructure
+- **[Breeze Club Community](https://discord.gg/yGsBGQAC49)** — Testing, feedback, and creative inspiration
+- **Open Source Community** — For the amazing libraries that power Abby
+
+Special thanks to all contributors who have helped shape Abby into what it is today!
+
+---
+
+## 📞 Support & Community
+
+- **Discord**: [Breeze Club Server](https://discord.gg/yGsBGQAC49)
+- **Issues**: [GitHub Issues](https://github.com/your-org/abby/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/your-org/abby/discussions)
+- **Lead Developer**: [@z8phyr\_](https://discord.com/users/your-user-id) on Discord
+
+---
+
+## 📸 Screenshots
+
+### Conversational AI
+
+![Abby Chatbot](docs/images/chatbot-example.png)
+
+### Image Generation
+
+![Image Generation](docs/images/image-generation-example.png)
+
+### Twitch Notifications
+
+![Twitch Live](docs/images/twitch-notification-example.png)
+
+---
+
+**Built with ❤️ for the Breeze Club community by [@z8phyr\_](https://discord.com/users/your-user-id)**
+
+🐰 _"Let's make something amazing together!"_ — Abby
