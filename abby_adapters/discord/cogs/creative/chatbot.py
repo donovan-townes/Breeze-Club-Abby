@@ -18,7 +18,7 @@ from abby_core.database.mongodb import (
     create_session, append_session_message, close_session, 
     get_sessions_collection, upsert_user
 )
-# Memory envelope system for contextual intelligence (TDOS Memory v1.0)
+# Memory envelope system for contextual intelligence (TDOS Memory v1.2)
 import tdos_memory as memory
 from tdos_memory import (
     get_memory_envelope, format_envelope_for_llm, 
@@ -26,7 +26,8 @@ from tdos_memory import (
     extract_facts_from_summary, analyze_conversation_patterns,
     apply_decay, add_shared_narrative, get_shared_narratives
 )
-from tdos_memory.storage import MemoryStore, MongoMemoryStore
+from tdos_memory.storage import MongoMemoryStore
+from tdos_memory.service import MemoryService, create_memory_service
 # Optional RAG integration
 try:
     from abby_core.rag import query as rag_query
@@ -36,19 +37,6 @@ from abby_core.observability.logging import logging
 
 logger = logging.getLogger(__name__)
 
-def apply_pattern_updates(user_id: str, updates: dict, confidence: float, store: MemoryStore) -> None:
-    """Apply proposed pattern updates to user profile via MemoryStore."""
-    if not updates:
-        return
-
-    # Keep write path centralized in MemoryStore for adapter-agnostic behavior
-    store.update_relational_profile(
-        user_id=user_id,
-        guild_id=None,
-        updates=updates,
-        confidence=confidence,
-    )
-
 class Chatbot(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -56,7 +44,27 @@ class Chatbot(commands.Cog):
         
         # Load personality configuration (summon/dismiss words, response patterns)
         self.personality = get_personality_config()
-        self.memory_store = MongoMemoryStore()
+        
+        # Connect to MongoDB for memory storage
+        # TDOS Memory v1.2+ requires explicit storage_client (no auto-connect)
+        from abby_core.database.mongodb import connect_to_mongodb
+        mongo_client = connect_to_mongodb()
+        
+        # Initialize MemoryStore (MongoDB-backed, parameterized for Discord)
+        self.memory_store = MongoMemoryStore(
+            storage_client=mongo_client,
+            profile_collection="discord_profiles",
+            session_collection="chat_sessions",
+            narrative_collection="shared_narratives"
+        )
+        
+        # Create high-level MemoryService for adapter-agnostic access
+        # All memory operations go through this service, not direct store calls
+        self.memory_service = create_memory_service(
+            store=self.memory_store,
+            source_id="discord",
+            logger=logger
+        )
         
         self.user_channel = {}      # Track the channel of each user's chat
         self.active_instances = []  # Track active chatbot instances
@@ -65,9 +73,11 @@ class Chatbot(commands.Cog):
         logger.info(
             "chatbot_initialized",
             extra={
-                "database_structure": "unified",
+                "adapter": "discord",
+                "memory_backend": "mongodb",
                 "summon_words_count": len(self.personality.summon_words),
-                "dismiss_words_count": len(self.personality.dismiss_words)
+                "dismiss_words_count": len(self.personality.dismiss_words),
+                "memory_service_enabled": True
             }
         )
 
@@ -97,9 +107,7 @@ class Chatbot(commands.Cog):
         self.user_channel.pop(user_id, None)        # Reset user channel after conversation ends
 
     def ensure_user_profile(self, user, guild):
-        """Ensure user has a profile using MemoryStore abstraction."""
-        from datetime import datetime
-        
+        """Ensure user has a profile using MemoryService abstraction."""
         user_id = str(user.id)
         guild_id = str(guild.id) if guild else None
         
@@ -122,8 +130,9 @@ class Chatbot(commands.Cog):
                 if member.joined_at:
                     metadata["joined_at"] = member.joined_at
         
-        # Use MemoryStore abstraction (idempotent)
-        profile = self.memory_store.ensure_user_profile(
+        # Use MemoryService abstraction (idempotent, adapter-agnostic)
+        # This replaces direct MemoryStore/Mongo calls
+        profile = self.memory_service.ensure_user_profile(
             user_id=user_id,
             guild_id=guild_id,
             metadata=metadata
@@ -203,16 +212,18 @@ class Chatbot(commands.Cog):
         ))
         
         # Invalidate memory cache immediately so next conversation gets fresh data
-        invalidate_cache(user_id, guild_id)
+        invalidate_cache(user_id, guild_id, source_id="discord")
         logger.info(
             "memory_cache_invalidated",
-            extra={"user_id": user_id, "guild_id": guild_id, "reason": "session_closed"}
+            extra={"user_id": user_id, "guild_id": guild_id, "reason": "session_closed", "source_id": "discord"}
         )
     
     async def _extract_and_update_memory(self, user_id, guild_id, summary, actual_conversation):
         """
         Background task: Extract facts and update memory without blocking Discord event loop.
         Runs asynchronously so heartbeat/event processing continues normally.
+        
+        Uses MemoryService for all memory operations (adapter-agnostic).
         """
         try:
             await asyncio.sleep(0.1)  # Yield to event loop first
@@ -221,20 +232,20 @@ class Chatbot(commands.Cog):
             profile = None  # Initialize to avoid UnboundLocalError
             
             try:
-                # Ensure profile exists using MemoryStore abstraction
-                profile = self.memory_store.get_profile(user_id, guild_id)
+                # Ensure profile exists using MemoryService abstraction
+                profile = self.memory_service.get_profile(user_id, guild_id)
                 if not profile:
                     logger.warning(
                         "profile_not_found_during_extraction",
                         extra={"user_id": user_id, "guild_id": guild_id}
                     )
-                    # Create minimal profile using abstraction
-                    self.memory_store.ensure_user_profile(
+                    # Create minimal profile using MemoryService abstraction
+                    self.memory_service.ensure_user_profile(
                         user_id=user_id,
                         guild_id=guild_id,
                         metadata={"username": f"User_{user_id[:8]}"}
                     )
-                    profile = self.memory_store.get_profile(user_id, guild_id)
+                    profile = self.memory_service.get_profile(user_id, guild_id)
                 
                 # 1. Extract memorable facts from summary (validated & typed)
                 logger.info(
@@ -246,16 +257,17 @@ class Chatbot(commands.Cog):
                 # Filter for USER_FACT type (only these go to profile)
                 user_facts = [f for f in extracted_facts if f.get("type") == "USER_FACT"]
                 
-                # Add each fact to user's memory
+                # Add each fact to user's memory using MemoryService
                 facts_stored_count = 0
                 for fact_data in user_facts:
-                    success = add_memorable_fact(
+                    success = self.memory_service.add_fact(
                         user_id=user_id,
                         guild_id=guild_id,
-                        fact=fact_data.get("text") or fact_data.get("fact"),  # Support both field names
+                        fact_text=fact_data.get("text") or fact_data.get("fact"),  # Support both field names
                         source=fact_data.get("source", "llm_extraction"),
                         confidence=fact_data["confidence"],
-                        store=self.memory_store
+                        origin=fact_data.get("origin", "explicit"),
+                        category=fact_data.get("category")
                     )
                     if success:
                         facts_stored_count += 1
@@ -321,15 +333,23 @@ class Chatbot(commands.Cog):
                             )
                         else:
                             # High confidence — safe to apply automatically
-                            apply_pattern_updates(user_id, proposed, confidence, self.memory_store)
-                            logger.info(
-                                "pattern_updates_applied",
-                                extra={
-                                    "user_id": user_id,
-                                    "confidence": round(confidence, 2),
-                                    "updated_fields": list(proposed.keys())
-                                }
-                            )
+                            # Update profile with pattern changes using MemoryService
+                            if pattern_result.get("proposed_updates"):
+                                success = self.memory_service.update_profile_metadata(
+                                    user_id=user_id,
+                                    guild_id=guild_id,
+                                    updates=proposed,
+                                    confidence=confidence
+                                )
+                                if success:
+                                    logger.info(
+                                        "pattern_updates_applied",
+                                        extra={
+                                            "user_id": user_id,
+                                            "confidence": round(confidence, 2),
+                                            "updated_fields": list(proposed.keys())
+                                        }
+                                    )
                     else:
                         logger.debug(
                             "no_pattern_updates",
@@ -339,7 +359,7 @@ class Chatbot(commands.Cog):
                 # 3. Invalidate cache after extraction/pattern updates
                 # NOTE: Decay is already applied by envelope.py at read-time, so we don't apply it here
                 # (applying it twice would double-penalize facts)
-                invalidate_cache(user_id, guild_id)
+                invalidate_cache(user_id, guild_id, source_id="discord")
 
             except Exception as e:
                 logger.error(
@@ -379,7 +399,10 @@ class Chatbot(commands.Cog):
                     context_block = "\n".join([f"[RAG] {c}" for c in contexts])
                     content = f"Context:\n{context_block}\n\nUser: {content}"
             except Exception as exc:
-                logger.warning(f"[RAG] Context fetch failed: {exc}")
+                logger.warning(
+                    "rag_context_fetch_failed",
+                    extra={"error": str(exc)}
+                )
 
         # Always use normal chat (code mode is deprecated)
         response = chat_openai.chat(content, user_id, chat_history=chat_history)
@@ -409,6 +432,7 @@ class Chatbot(commands.Cog):
         ) 
         
         # Ensure user has a profile with up-to-date Discord metadata
+        # Uses MemoryService for adapter-agnostic access
         self.ensure_user_profile(message.author, message.guild)
         
         # Upsert user metadata using unified client
@@ -417,7 +441,8 @@ class Chatbot(commands.Cog):
         guild_id = str(message.guild.id) if message.guild else None
         
         # Get or build memory envelope (cached 15min)
-        envelope = get_memory_envelope(user_id, guild_id, store=self.memory_store)
+        # Uses MemoryService with source_id for multi-adapter isolation
+        envelope = self.memory_service.get_memory_envelope(user_id, guild_id, force_refresh=False)
         
         # Format envelope for LLM context (includes identity + relational + recent context)
         memory_context = format_envelope_for_llm(envelope, max_facts=5)
@@ -428,13 +453,23 @@ class Chatbot(commands.Cog):
         # Initialize chat history with memory envelope context
         chat_history = []
         if memory_context:
-            logger.info(f"[🧠] Memory envelope loaded: {len(envelope.get('relational', {}).get('memorable_facts', []))} facts, recent context: {bool(envelope.get('recent_context'))}")
+            logger.info(
+                "memory_envelope_loaded",
+                extra={
+                    "user_id": user_id,
+                    "facts_count": len(envelope.get('relational', {}).get('memorable_facts', [])),
+                    "has_recent_context": bool(envelope.get('recent_context'))
+                }
+            )
             chat_history.insert(0, {
                 "input": "Memory Context (Identity + Relationships + Recent Session):",
                 "response": memory_context,
             })
         else:
-            logger.info(f"[🧠] No existing memory for user {user_id} - starting fresh")
+            logger.info(
+                "memory_envelope_not_found",
+                extra={"user_id": user_id}
+            )
         
         return chat_history
 
@@ -516,7 +551,10 @@ class Chatbot(commands.Cog):
 
             # If there is an error, send a message and reset the chatbot
             except Exception as e:
-                logger.warning(f"[❌] There was an error (handle_conversation) {str(e)}")
+                logger.warning(
+                    "conversation_error",
+                    extra={"user_id": user_id, "error": str(e)}
+                )
                 await message.channel.send(f"Oops, there was an error. Please try again.")
                 # Remove User from Chatbot
                 self.remove_user(user_id)
@@ -539,10 +577,16 @@ class Chatbot(commands.Cog):
         
         # Check for summon words using personality config
         if self.personality.check_summon_trigger(message.content):
-            logger.info(f"[💭] Summoning Chatbot for {user_id}")        
+            logger.info(
+                "chatbot_summoned",
+                extra={"user_id": user_id}
+            )
             # Set the user's channel if not already set
             if user_id not in self.user_channel:
-                logger.info(f"[💭] Setting user channel for {user_id}")
+                logger.info(
+                    "user_channel_set",
+                    extra={"user_id": user_id, "channel_id": str(message.channel.id)}
+                )
                 self.user_channel[user_id] = message.channel
 
             # Send a "processing" message in bunny talk
@@ -557,7 +601,10 @@ class Chatbot(commands.Cog):
             
             # Ignore the message if the user is in a different channel
             if message.channel != self.user_channel[user_id]:
-                logger.info(f"[💭] User {user_id} is in a different channel")
+                logger.info(
+                    "user_in_different_channel",
+                    extra={"user_id": user_id, "current_channel": str(message.channel.id)}
+                )
                 return 
             
             # Initialize the user's chat history
@@ -604,7 +651,10 @@ class Chatbot(commands.Cog):
             # Log Chatbot Startup Time
             end_time = time.perf_counter()
             elapsed_time = end_time - start_time
-            logger.info(f"[⏱️] (Startup) Elapsed Time: {elapsed_time:0.4f} seconds")
+            logger.info(
+                "chatbot_startup_complete",
+                extra={"elapsed_seconds": round(elapsed_time, 4)}
+            )
             
             # Continue the listener loop
             await self.handle_conversation(client, message, user_id, session_id, chat_history)

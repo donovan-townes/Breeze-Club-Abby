@@ -108,8 +108,24 @@ def create_indexes():
         logger.info("[✅] Created compound index: rag_documents(user_id, guild_id)")
         
         # Unique index on document_id
-        rag_documents.create_index([("document_id", ASCENDING)], unique=True)
+        rag_documents.create_index(["document_id", ASCENDING)], unique=True)
         logger.info("[✅] Created unique index: rag_documents.document_id")
+        
+        # ==================== Discord Profiles (TDOS Memory) ====================
+        discord_profiles = db["discord_profiles"]
+        
+        # Unique compound index for multi-tenant isolation (user_id, guild_id)
+        # This ensures each user can have only one profile per guild/global context
+        try:
+            discord_profiles.create_index(
+                [("user_id", ASCENDING), ("guild_id", ASCENDING)],
+                unique=True,
+                name="unique_user_guild"
+            )
+            logger.info("[✅] Created unique compound index: discord_profiles(user_id, guild_id)")
+        except Exception as e:
+            # Index may already exist from runtime creation
+            logger.warning(f"[⚠️] Index unique_user_guild may already exist: {e}")
         
         
         logger.info("\n[🎉] Database initialization complete!")
