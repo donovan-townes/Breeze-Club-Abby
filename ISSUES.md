@@ -115,7 +115,12 @@ Abby issue backlog organized by priority. Issues #1 and #2 remain for historical
 - Unit tests for `get_economy()`, `update_balance()`
 - Integration tests for deposit/withdraw, interest, transfers, history
 - Target 80%+ coverage of economy module
-- Status: 🟡 partial — new scoping + dashboard helper tests added in `tests/test_economy_scoping.py` (all passing in dev); integration suite pending
+- Status: ✅ complete — comprehensive test suite in three files:
+  - `tests/test_banking_integration.py`: 14 test classes (100+ tests) covering deposit/withdraw, transfers, interest, history, guild scoping, edge cases, canonical fields
+  - `tests/test_banking_edge_cases.py`: 14 test classes (50+ tests) covering validation logic, boundary conditions, concurrency, atomicity
+  - `tests/test_banking_history.py`: 11 test classes (40+ tests) covering transaction history retrieval, filtering, types, formatting, multi-guild isolation
+  - Total: 39 test classes, 100+ test methods validating all banking operations (Issues #3, #4, #5)
+- References: [tests/test_banking_integration.py](tests/test_banking_integration.py), [tests/test_banking_edge_cases.py](tests/test_banking_edge_cases.py), [tests/test_banking_history.py](tests/test_banking_history.py), [docs/BANKING_TEST_SUITE.md](docs/BANKING_TEST_SUITE.md)
 
 #### Issue #9: Implement Budget/Spending Analytics
 
