@@ -288,7 +288,7 @@ def update_balance(user_id, wallet_delta=0, bank_delta=0, guild_id=None):
 
         update_doc = {}
         
-        # Use $inc for balance changes
+        # Use $inc for balance changes; MongoDB treats missing fields as 0
         inc_doc = {}
         if wallet_delta != 0:
             inc_doc['wallet_balance'] = wallet_delta
@@ -297,12 +297,10 @@ def update_balance(user_id, wallet_delta=0, bank_delta=0, guild_id=None):
         if inc_doc:
             update_doc['$inc'] = inc_doc
 
-        # Ensure guild/user identifiers and zero balances exist on first insert only
+        # Ensure guild/user identifiers exist on first insert; do NOT include wallet/bank to avoid conflict
         set_on_insert = {
             "user_id": str(user_id),
             "guild_id": str(guild_id) if guild_id is not None else None,
-            "wallet_balance": 0,
-            "bank_balance": 0,
             "transactions": [],
             "last_daily": None,
         }
