@@ -6,6 +6,7 @@ Provides /bank group with balance, deposit, withdraw, and history stubs using gu
 import discord
 from discord import app_commands
 from discord.ext import commands
+from typing import Optional
 
 from abby_core.database.mongodb import get_economy, update_balance
 from abby_core.observability.logging import logging
@@ -39,6 +40,14 @@ def _validate_amount(amount: int | None) -> str | None:
         return "Enter an amount."
     if amount <= 0:
         return "Enter a positive amount."
+    return None
+
+
+def _validate_non_negative(value: int | None) -> str | None:
+    if value is None:
+        return "Enter a value."
+    if value < 0:
+        return "Enter a non-negative value."
     return None
 
 
@@ -115,6 +124,55 @@ class BankCommands(commands.GroupCog, name="bank"):
     async def history(self, interaction: discord.Interaction):
         await interaction.response.send_message(
             "Transaction history will be available in the next update.",
+            ephemeral=True,
+        )
+
+    @app_commands.command(name="init", description="Admin: create or reset a bank profile")
+    @app_commands.describe(
+        user="User to initialize/reset (defaults to yourself)",
+        wallet="Starting wallet amount (>=0)",
+        bank="Starting bank amount (>=0)",
+        reset="Reset even if a profile already exists",
+    )
+    @app_commands.checks.has_permissions(administrator=True)
+    async def init_profile(
+        self,
+        interaction: discord.Interaction,
+        user: Optional[discord.Member] = None,
+        wallet: int = 0,
+        bank: int = 0,
+        reset: bool = False,
+    ):
+        err_wallet = _validate_non_negative(wallet)
+        err_bank = _validate_non_negative(bank)
+        if err_wallet or err_bank:
+            await interaction.response.send_message(err_wallet or err_bank, ephemeral=True)
+            return
+
+        target = user or interaction.user
+        guild_id = str(interaction.guild_id) if interaction.guild_id else None
+        user_id = str(target.id)
+
+        existing = get_economy(user_id, guild_id)
+        if existing and not reset:
+            await interaction.response.send_message(
+                "Profile already exists. Use reset=true to overwrite balances.",
+                ephemeral=True,
+            )
+            return
+
+        current_wallet = existing.get("wallet_balance", existing.get("wallet", 0)) if existing else 0
+        current_bank = existing.get("bank_balance", existing.get("bank", 0)) if existing else 0
+
+        wallet_delta = wallet - current_wallet
+        bank_delta = bank - current_bank
+
+        update_balance(user_id, wallet_delta=wallet_delta, bank_delta=bank_delta, guild_id=guild_id)
+
+        embed = _balance_embed(target, wallet, bank)
+        await interaction.response.send_message(
+            f"Profile initialized for {target.mention} (reset={reset}).",
+            embed=embed,
             ephemeral=True,
         )
 
