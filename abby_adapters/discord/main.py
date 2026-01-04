@@ -165,7 +165,9 @@ class Abby(commands.Bot):
             uptime = int(time.time() - self.start_time)
             active_sessions = get_active_sessions_count()
             pending_submissions = get_pending_submissions_count()
-            ollama_latency_ms = None  # Placeholder; wire up when available
+            
+            # Probe Ollama latency if available
+            ollama_latency_ms = await self._probe_ollama_latency()
             
             emit_heartbeat(
                 uptime_seconds=uptime,
@@ -173,10 +175,30 @@ class Abby(commands.Bot):
                 pending_submissions=pending_submissions,
                 ollama_latency_ms=ollama_latency_ms
             )
-            logger.debug(f"[TDOS] Heartbeat emitted (uptime: {uptime}s)")
+            logger.debug(f"[TDOS] Heartbeat emitted (uptime: {uptime}s, ollama: {ollama_latency_ms}ms)")
         
         except Exception as e:
             logger.error(f"[TDOS] Failed to emit periodic heartbeat: {e}")
+
+    async def _probe_ollama_latency(self) -> int | None:
+        """Probe Ollama API for latency check (lightweight health endpoint)."""
+        import aiohttp
+        ollama_host = self.config.llm.ollama_host
+        if not ollama_host or self.config.llm.provider != "ollama":
+            return None
+        
+        try:
+            import time
+            start = time.time()
+            async with aiohttp.ClientSession() as session:
+                async with session.get(f"{ollama_host}/api/tags", timeout=aiohttp.ClientTimeout(total=2)) as resp:
+                    if resp.status == 200:
+                        latency_ms = int((time.time() - start) * 1000)
+                        return latency_ms
+            return None
+        except Exception as e:
+            logger.debug(f"[TDOS] Ollama latency probe failed: {e}")
+            return None
 
     @heartbeat_task.before_loop
     async def before_heartbeat_task(self):

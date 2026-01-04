@@ -48,7 +48,7 @@ Abby issue backlog organized by priority. Issues #1 and #2 remain for historical
   - `get_pending_submissions()` reads moderation queue
   - Optional Ollama latency check
   - Status refreshes every 5 minutes asynchronously
-- Status: ✅ heartbeat now uses live Mongo counts; Ollama latency still TODO; dashboard count filters validated via tests/test_economy_scoping.py (passing)
+- Status: ✅ complete; heartbeat uses live Mongo counts + Ollama latency probe (2s timeout, /api/tags endpoint)
 - References: [abby_adapters/discord/main.py](abby_adapters/discord/main.py)
 
 #### Issue #3: Refactor Bank Cog to Modern Slash Commands
