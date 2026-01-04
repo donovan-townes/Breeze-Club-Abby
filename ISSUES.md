@@ -107,7 +107,8 @@ Abby issue backlog organized by priority. Issues #1 and #2 remain for historical
 
 - `/pay @user amount` with balance validation, limits, cooldown
 - Transactions recorded for sender and recipient
-- References: [abby_core/economy/bank.py](abby_core/economy/bank.py)
+- Status: ✅ complete; `/pay` command with validation, auto-profile creation, logged as transfer for both parties
+- References: [abby_adapters/discord/cogs/economy/bank.py](abby_adapters/discord/cogs/economy/bank.py)
 
 #### Issue #6: Banking System Tests
 

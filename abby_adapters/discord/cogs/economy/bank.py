@@ -214,6 +214,72 @@ class BankCommands(commands.GroupCog, name="bank"):
             ephemeral=True,
         )
 
+    @app_commands.command(name="pay", description="Send Breeze Coins to another user")
+    @app_commands.describe(
+        recipient="User to send coins to",
+        amount="Amount to send (from wallet)"
+    )
+    async def pay(self, interaction: discord.Interaction, recipient: discord.Member, amount: int):
+        err = _validate_amount(amount)
+        if err:
+            await interaction.response.send_message(err, ephemeral=True)
+            return
+        
+        if recipient.bot:
+            await interaction.response.send_message("You cannot send coins to bots.", ephemeral=True)
+            return
+        
+        if recipient.id == interaction.user.id:
+            await interaction.response.send_message("You cannot send coins to yourself.", ephemeral=True)
+            return
+        
+        guild_id = str(interaction.guild_id) if interaction.guild_id else None
+        sender_id = str(interaction.user.id)
+        recipient_id = str(recipient.id)
+        
+        # Get sender profile
+        sender_econ = get_economy(sender_id, guild_id)
+        if not sender_econ:
+            await interaction.response.send_message("Your profile not found. Initialize with `/bank init` first.", ephemeral=True)
+            return
+        
+        sender_wallet = sender_econ.get("wallet_balance", sender_econ.get("wallet", 0))
+        if sender_wallet < amount:
+            await interaction.response.send_message(
+                f"Insufficient funds. You have {_format_currency(sender_wallet)}.",
+                ephemeral=True
+            )
+            return
+        
+        # Get or create recipient profile (upsert with 0 balance)
+        recipient_econ = get_economy(recipient_id, guild_id)
+        if not recipient_econ:
+            # Create profile with 0 balance via upsert
+            update_balance(recipient_id, wallet_delta=0, bank_delta=0, guild_id=guild_id)
+            recipient_econ = get_economy(recipient_id, guild_id)
+        
+        recipient_wallet = recipient_econ.get("wallet_balance", recipient_econ.get("wallet", 0))
+        
+        # Execute transfer atomically
+        update_balance(sender_id, wallet_delta=-amount, guild_id=guild_id)
+        update_balance(recipient_id, wallet_delta=amount, guild_id=guild_id)
+        
+        # Log transactions for both parties
+        new_sender_wallet = sender_wallet - amount
+        new_recipient_wallet = recipient_wallet + amount
+        log_transaction(sender_id, guild_id, "transfer", amount, new_sender_wallet, f"Sent {amount} BC to {recipient.display_name}")
+        log_transaction(recipient_id, guild_id, "transfer", amount, new_recipient_wallet, f"Received {amount} BC from {interaction.user.display_name}")
+        
+        # Send confirmation
+        embed = discord.Embed(title="Transfer Complete", color=discord.Color.green())
+        embed.add_field(name="From", value=interaction.user.mention, inline=True)
+        embed.add_field(name="To", value=recipient.mention, inline=True)
+        embed.add_field(name="Amount", value=_format_currency(amount), inline=False)
+        embed.add_field(name="Your New Balance", value=_format_currency(new_sender_wallet), inline=False)
+        embed.set_footer(text="Transfer logged in your transaction history")
+        
+        await interaction.response.send_message(embed=embed, ephemeral=False)
+
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(BankCommands(bot))
