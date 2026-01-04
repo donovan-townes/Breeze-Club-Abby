@@ -19,6 +19,11 @@ load_dotenv()
 # Global MongoDB client (singleton pattern for connection pooling)
 _mongodb_client = None
 
+
+def _get_db_name():
+    """Return the configured DB name (defaults to Abby_Database)."""
+    return os.getenv("MONGODB_DB", "Abby_Database")
+
 def connect_to_mongodb():
     """Get or create a shared MongoDB client connection with proper write concern."""
     global _mongodb_client
@@ -44,13 +49,13 @@ def connect_to_mongodb():
 def get_database():
     """Get the main Abby database from MongoDB connection."""
     client = connect_to_mongodb()
-    return client["Abby_Database"]
+    return client[_get_db_name()]
 
 
 def get_profile(user_id):
     client = connect_to_mongodb()
     try:
-        db = client["Abby_Database"]
+        db = client[_get_db_name()]
         collection = db["discord_profiles"]
         # Profiles are keyed by user_id in the unified database
         return collection.find_one({"user_id": str(user_id)})
@@ -68,7 +73,7 @@ def get_genres():
         logger.warning(e)
 
     try:
-        db = client["Abby_Database"]
+        db = client[_get_db_name()]
         genre_collection = db["music_genres"]
 
         # Retrieve the first document from the collection
@@ -87,7 +92,7 @@ def get_genres():
 
 def get_promo_session(session_length='1_week'):
     client = connect_to_mongodb()
-    db = client['Abby_Database']
+    db = client[_get_db_name()]
     collection = db['music_promo_sessions']
     # Assuming there's only one document in the collection
     session = collection.find_one({})
@@ -96,7 +101,7 @@ def get_promo_session(session_length='1_week'):
 
 def get_personality():
     client = connect_to_mongodb()
-    db = client["Abby_Database"]
+    db = client[_get_db_name()]
     collection = db["bot_settings"]
     # Fetch the personality document from MongoDB
     return collection.find_one({"_id": "personality"})
@@ -104,7 +109,7 @@ def get_personality():
 
 def update_personality(new_personality):
     client = connect_to_mongodb()
-    db = client["Abby_Database"]
+    db = client[_get_db_name()]
     collection = db["bot_settings"]
     # Update the personality document in MongoDB
     collection.update_one({"_id": "personality"}, {
@@ -114,7 +119,7 @@ def update_personality(new_personality):
 
 def get_user_tasks(user_id):
     client = connect_to_mongodb()
-    db = client["Abby_Database"]
+    db = client[_get_db_name()]
     collection = db["user_tasks"]
     #If the collection is empty, return None
     if collection.count_documents({}) == 0:
@@ -124,7 +129,7 @@ def get_user_tasks(user_id):
 
 def add_task(user_id, task_description, task_time):
     client = connect_to_mongodb()
-    db = client["Abby_Database"]
+    db = client[_get_db_name()]
     collection = db["user_tasks"]
 
     task = {
@@ -137,7 +142,7 @@ def add_task(user_id, task_description, task_time):
 
 def delete_task(task_id):
     client = connect_to_mongodb()
-    db = client["Abby_Database"]
+    db = client[_get_db_name()]
     collection = db["user_tasks"]
 
     collection.delete_one({"_id": task_id})
@@ -146,7 +151,7 @@ def delete_task(task_id):
 def get_sessions_collection():
     """Get the unified chat sessions collection from Abby_Database."""
     client = connect_to_mongodb()
-    db = client["Abby_Database"]
+    db = client[_get_db_name()]
     return db["chat_sessions"]
 
 
@@ -235,7 +240,7 @@ def upsert_user(user_id: int, username: str, **kwargs):
     """Create or update user profile in the unified discord_profiles collection."""
     try:
         client = connect_to_mongodb()
-        db = client["Abby_Database"]
+        db = client[_get_db_name()]
         collection = db["discord_profiles"]
         
         user_doc = {
@@ -259,45 +264,92 @@ def upsert_user(user_id: int, username: str, **kwargs):
 
 # ==================== Economy Management ====================
 
-def get_economy(user_id):
-    """Get user's economy data (wallet, bank balance)."""
+def get_economy(user_id, guild_id=None):
+    """Get user's economy data (wallet/bank) scoped by guild."""
     client = connect_to_mongodb()
     try:
-        db = client["Abby_Database"]
+        db = client[_get_db_name()]
         collection = db["economy"]
-        return collection.find_one({"user_id": str(user_id)})
+        query = {"user_id": str(user_id)}
+        if guild_id is not None:
+            query["guild_id"] = str(guild_id)
+        return collection.find_one(query)
     except Exception as e:
         logger.error(f"[❌] Failed to fetch economy for {user_id}: {e}")
         return None
 
 
-def update_balance(user_id, wallet_delta=0, bank_delta=0):
-    """Update user's wallet and/or bank balance."""
+def update_balance(user_id, wallet_delta=0, bank_delta=0, guild_id=None):
+    """Update user's wallet and/or bank balance using canonical field names."""
     client = connect_to_mongodb()
     try:
-        db = client["Abby_Database"]
+        db = client[_get_db_name()]
         collection = db["economy"]
-        
+
         update_doc = {}
-        if wallet_delta != 0:
-            update_doc['$inc'] = update_doc.get('$inc', {})
-            update_doc['$inc']['wallet'] = wallet_delta
-        if bank_delta != 0:
-            update_doc['$inc'] = update_doc.get('$inc', {})
-            update_doc['$inc']['bank'] = bank_delta
         
+        # Use $inc for balance changes
+        inc_doc = {}
+        if wallet_delta != 0:
+            inc_doc['wallet_balance'] = wallet_delta
+        if bank_delta != 0:
+            inc_doc['bank_balance'] = bank_delta
+        if inc_doc:
+            update_doc['$inc'] = inc_doc
+
+        # Ensure guild/user identifiers and zero balances exist on first insert only
+        set_on_insert = {
+            "user_id": str(user_id),
+            "guild_id": str(guild_id) if guild_id is not None else None,
+            "wallet_balance": 0,
+            "bank_balance": 0,
+            "transactions": [],
+            "last_daily": None,
+        }
+        update_doc['$setOnInsert'] = set_on_insert
+
         if update_doc:
             collection.update_one(
-                {"user_id": str(user_id)},
+                {"user_id": str(user_id), "guild_id": str(guild_id) if guild_id is not None else None},
                 update_doc,
                 upsert=True
             )
-            logger.debug(f"[💰] Updated balance for {user_id}: wallet_delta={wallet_delta}, bank_delta={bank_delta}")
+            logger.debug(f"[💰] Updated balance for {user_id} (guild {guild_id}): wallet_delta={wallet_delta}, bank_delta={bank_delta}")
             return True
         return False
     except Exception as e:
         logger.error(f"[❌] Failed to update balance for {user_id}: {e}")
         return False
+
+
+def list_economies(batch_size=500, guild_id=None):
+    """Yield economy documents in batches for periodic tasks (guild-scoped if provided)."""
+    client = connect_to_mongodb()
+    db = client[_get_db_name()]
+    collection = db["economy"]
+    query = {}
+    if guild_id is not None:
+        query["guild_id"] = str(guild_id)
+
+    cursor = collection.find(query, batch_size=batch_size)
+    for doc in cursor:
+        yield doc
+
+
+def get_active_sessions_count():
+    """Return count of active chat sessions for dashboard/heartbeat."""
+    client = connect_to_mongodb()
+    db = client[_get_db_name()]
+    collection = db["chat_sessions"]
+    return collection.count_documents({"status": {"$in": ["active", "open"]}})
+
+
+def get_pending_submissions_count():
+    """Return count of pending submissions for dashboard/heartbeat."""
+    client = connect_to_mongodb()
+    db = client[_get_db_name()]
+    collection = db["submissions"]
+    return collection.count_documents({"status": {"$in": ["submitted", "pending"]}})
 
 
 # ==================== RAG Document Management ====================
