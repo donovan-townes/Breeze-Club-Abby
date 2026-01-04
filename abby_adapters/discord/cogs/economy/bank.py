@@ -7,7 +7,6 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from abby_core.economy.bank import amt_check  # reuse validation helper
 from abby_core.database.mongodb import get_economy, update_balance
 from abby_core.observability.logging import logging
 
@@ -35,6 +34,14 @@ def _balance_embed(user: discord.abc.User, wallet: int, bank: int) -> discord.Em
     return embed
 
 
+def _validate_amount(amount: int | None) -> str | None:
+    if amount is None:
+        return "Enter an amount."
+    if amount <= 0:
+        return "Enter a positive amount."
+    return None
+
+
 class BankCommands(commands.GroupCog, name="bank"):
     """Slash commands for balance, deposit, withdraw, and history."""
 
@@ -59,8 +66,9 @@ class BankCommands(commands.GroupCog, name="bank"):
     @app_commands.command(name="deposit", description="Move coins from wallet into bank")
     @app_commands.describe(amount="Amount to deposit")
     async def deposit(self, interaction: discord.Interaction, amount: int):
-        if amount is None or amount <= 0:
-            await interaction.response.send_message("Enter a positive amount to deposit.", ephemeral=True)
+        err = _validate_amount(amount)
+        if err:
+            await interaction.response.send_message(err, ephemeral=True)
             return
 
         guild_id = str(interaction.guild_id) if interaction.guild_id else None
@@ -82,8 +90,9 @@ class BankCommands(commands.GroupCog, name="bank"):
     @app_commands.command(name="withdraw", description="Move coins from bank into wallet")
     @app_commands.describe(amount="Amount to withdraw")
     async def withdraw(self, interaction: discord.Interaction, amount: int):
-        if amt_check(str(amount) if amount is not None else ""):
-            await interaction.response.send_message(amt_check(str(amount)), ephemeral=True)
+        err = _validate_amount(amount)
+        if err:
+            await interaction.response.send_message(err, ephemeral=True)
             return
 
         guild_id = str(interaction.guild_id) if interaction.guild_id else None
