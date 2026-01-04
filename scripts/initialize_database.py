@@ -15,7 +15,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from pymongo import ASCENDING, DESCENDING
-from abby_core.database.mongodb import connect_to_mongodb
+from abby_core.database.mongodb import connect_to_mongodb, _get_db_name
 from abby_core.observability.logging import setup_logging, logging
 
 setup_logging()
@@ -26,7 +26,7 @@ def create_indexes():
     """Create all necessary indexes for the unified database."""
     try:
         client = connect_to_mongodb()
-        db = client["Abby_Database"]
+        db = client[_get_db_name()]
         
         logger.info("[📗] Creating indexes for unified database...")
         
@@ -92,28 +92,17 @@ def create_indexes():
         # ==================== RAG Documents Collection ====================
         rag_documents = db["rag_documents"]
         
-        # Index for finding user's documents
-        rag_documents.create_index([("user_id", ASCENDING)])
-        logger.info("[✅] Created index: rag_documents.user_id")
-        
-        # Index for finding guild documents
-        rag_documents.create_index([("guild_id", ASCENDING)])
-        logger.info("[✅] Created index: rag_documents.guild_id")
-        
-        # Compound index for user + guild documents
-        rag_documents.create_index([
-            ("user_id", ASCENDING),
-            ("guild_id", ASCENDING)
-        ])
-        logger.info("[✅] Created compound index: rag_documents(user_id, guild_id)")
-        
-        # Unique index on document_id
-        rag_documents.create_index(["document_id", ASCENDING)], unique=True)
-        logger.info("[✅] Created unique index: rag_documents.document_id")
+        # Tenant scoping and retrieval indexes
+        rag_documents.create_index([("tenant_id", ASCENDING)])
+        rag_documents.create_index([("tenant_id", ASCENDING), ("source", ASCENDING)])
+        rag_documents.create_index([("tenant_id", ASCENDING), ("metadata.tags", ASCENDING)])
+        rag_documents.create_index([("tenant_id", ASCENDING), ("embedding_key", ASCENDING)])
+        rag_documents.create_index([("tenant_id", ASCENDING), ("title", ASCENDING)])
+        logger.info("[✅] Created indexes for rag_documents (tenant, source, tags, embedding_key, title)")
         
         # ==================== Discord Profiles (TDOS Memory) ====================
         discord_profiles = db["discord_profiles"]
-        
+
         # Unique compound index for multi-tenant isolation (user_id, guild_id)
         # This ensures each user can have only one profile per guild/global context
         try:
@@ -143,7 +132,7 @@ def verify_indexes():
     """Verify that all indexes were created correctly."""
     try:
         client = connect_to_mongodb()
-        db = client["Abby_Database"]
+        db = client[_get_db_name()]
         
         logger.info("\n[🔍] Verifying indexes...")
         

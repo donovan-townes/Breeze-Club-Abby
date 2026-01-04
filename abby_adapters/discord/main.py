@@ -18,6 +18,7 @@ if str(ABBY_ROOT) not in sys.path:
 # Import from abby_core
 from abby_core.observability.logging import setup_logging, logging, log_startup_phase, STARTUP_PHASES
 from abby_core.observability.telemetry import emit_heartbeat, emit_error
+from abby_core.database.mongodb import get_active_sessions_count, get_pending_submissions_count
 from abby_core.storage.storage_manager import StorageManager
 from abby_core.generation.image_generator import ImageGenerator
 
@@ -32,20 +33,31 @@ logger = logging.getLogger("Main")
 
 #Abby
 class Abby(commands.Bot):
-    def __init__(self):
+    def __init__(self, mode: str | None = None):
         intents = discord.Intents.all()
         super().__init__(command_prefix=commands.when_mentioned_or('!'), intents=intents)
-        self.token = os.getenv('ABBY_TOKEN')
+        self.mode = (mode or os.getenv('ABBY_MODE') or 'prod').lower()
+        self.token = None
         self.command_handler = CommandHandler(self)
         self.start_time = None
         self.init_start_time = time.time()  # Track init timing
         
         # Initialize BotConfig
         self.config = BotConfig()
+
+        # Resolve token based on mode
+        if self.mode == "dev" and self.config.api.developer_token:
+            self.token = self.config.api.developer_token
+        else:
+            self.token = self.config.api.discord_token
+
+        # Optional DB override for dev
+        if self.mode == "dev" and os.getenv("MONGODB_DB_DEV"):
+            os.environ["MONGODB_DB"] = os.getenv("MONGODB_DB_DEV")
         
         # Phase 1: Core Services Initialization
         log_startup_phase(logger, STARTUP_PHASES["CORE_SERVICES"], 
-                         "[🐰] Initializing core services...")
+                         f"[🐰] Initializing core services (mode={self.mode})...")
         
         # Initialize storage and generation services
         try:
@@ -151,15 +163,9 @@ class Abby(commands.Bot):
         
         try:
             uptime = int(time.time() - self.start_time)
-            
-            # TODO: Get actual active sessions count from MongoDB
-            active_sessions = 0
-            
-            # TODO: Get actual pending submissions count from MongoDB
-            pending_submissions = 0
-            
-            # TODO: Check Ollama latency if available
-            ollama_latency_ms = None
+            active_sessions = get_active_sessions_count()
+            pending_submissions = get_pending_submissions_count()
+            ollama_latency_ms = None  # Placeholder; wire up when available
             
             emit_heartbeat(
                 uptime_seconds=uptime,
@@ -183,9 +189,10 @@ class Abby(commands.Bot):
             await self.start(self.token, reconnect=True)
         logger.info(f"[🐰️] Abby is starting")
         
-def run():
+def run(mode: str | None = None):
     """Entry point for launch.py"""
-    manager = Abby()
+    resolved_mode = (mode or os.getenv("ABBY_MODE", "prod")).lower()
+    manager = Abby(mode=resolved_mode)
     asyncio.run(manager.main())
 
 if __name__ == "__main__":

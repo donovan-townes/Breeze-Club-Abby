@@ -350,6 +350,46 @@ def get_pending_submissions_count():
     return collection.count_documents({"status": {"$in": ["submitted", "pending"]}})
 
 
+def log_transaction(user_id, guild_id, transaction_type, amount, balance_after, description=None):
+    """Log a bank transaction (deposit/withdraw/transfer/interest/etc.)."""
+    from datetime import datetime
+    client = connect_to_mongodb()
+    try:
+        db = client[_get_db_name()]
+        collection = db["transactions"]
+        doc = {
+            "user_id": str(user_id),
+            "guild_id": str(guild_id) if guild_id else None,
+            "type": transaction_type,
+            "amount": amount,
+            "balance_after": balance_after,
+            "description": description,
+            "timestamp": datetime.utcnow(),
+        }
+        collection.insert_one(doc)
+        logger.debug(f"[💰] Logged {transaction_type} for {user_id}: {amount}")
+        return True
+    except Exception as e:
+        logger.error(f"[❌] Failed to log transaction for {user_id}: {e}")
+        return False
+
+
+def get_transaction_history(user_id, guild_id=None, limit=10):
+    """Retrieve recent transactions for a user (guild-scoped if provided)."""
+    client = connect_to_mongodb()
+    try:
+        db = client[_get_db_name()]
+        collection = db["transactions"]
+        query = {"user_id": str(user_id)}
+        if guild_id is not None:
+            query["guild_id"] = str(guild_id)
+        cursor = collection.find(query).sort("timestamp", -1).limit(limit)
+        return list(cursor)
+    except Exception as e:
+        logger.error(f"[❌] Failed to fetch transaction history for {user_id}: {e}")
+        return []
+
+
 # ==================== RAG Document Management ====================
 def get_rag_documents_collection():
     """Get the unified RAG documents collection from Abby_Database."""

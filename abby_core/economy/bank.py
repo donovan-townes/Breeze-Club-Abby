@@ -8,7 +8,7 @@ import datetime
 
 # Import unified MongoDB client
 sys.path.insert(0, str(Path(__file__).parent.parent / 'abby-core'))
-from abby_core.database.mongodb import get_economy, update_balance
+from abby_core.database.mongodb import get_economy, update_balance, list_economies
 from abby_core.observability.logging import setup_logging, logging
 
 load_dotenv()
@@ -35,10 +35,17 @@ class Bank(commands.Cog):
     
     @tasks.loop(minutes=10)
     async def bank_update(self):
-        # Note: Needs to iterate over tenant-scoped economy collection
-        # For now, skip auto-updates until tenant iteration pattern is established
-        pass
-        # TODO: Implement tenant-aware iteration for periodic balance updates
+        """Iterate tenant-scoped economies for periodic tasks (interest/rewards hooks)."""
+        try:
+            processed = 0
+            for econ in list_economies():
+                guild_id = econ.get("guild_id")
+                user_id = econ.get("user_id")
+                # Placeholder for future interest/reward logic; no mutation yet
+                processed += 1
+            logger.debug(f"[💲] bank_update scanned {processed} economy docs")
+        except Exception as e:
+            logger.error(f"[💲] bank_update failed: {e}")
             
     async def cooldown_check(self, user_id):
         user_data = get_economy(user_id)
@@ -62,10 +69,11 @@ class Bank(commands.Cog):
     @bank_group.command()
     async def balance(self,ctx):
         user_id = str(ctx.author.id)
-        user_data = get_economy(user_id)
+        guild_id = str(ctx.guild.id) if ctx.guild else None
+        user_data = get_economy(user_id, guild_id)
         if user_data:
-            wallet_balance = user_data.get("wallet_balance", 0)
-            bank_balance = user_data.get("bank_balance", 0)
+            wallet_balance = user_data.get("wallet_balance", user_data.get("wallet", 0))
+            bank_balance = user_data.get("bank_balance", user_data.get("bank", 0))
             await ctx.send(f"Wallet Balance: {wallet_balance}, Bank Balance: {bank_balance}")
         else:
             await ctx.send("User profile not found.")
@@ -73,15 +81,16 @@ class Bank(commands.Cog):
     @bank_group.command()
     async def deposit(self,ctx, amount):
         user_id = str(ctx.author.id)
-        user_data = get_economy(user_id)
+        guild_id = str(ctx.guild.id) if ctx.guild else None
+        user_data = get_economy(user_id, guild_id)
         if user_data:
             amount_int = int(amount)
-            wallet_balance = user_data.get("wallet_balance", 0)
+            wallet_balance = user_data.get("wallet_balance", user_data.get("wallet", 0))
             if wallet_balance < amount_int:
                 await ctx.send("Insufficient funds in your wallet.")
                 return
             # Use unified client helper to update balances atomically
-            update_balance(user_id, wallet_delta=-amount_int, bank_delta=amount_int)
+            update_balance(user_id, wallet_delta=-amount_int, bank_delta=amount_int, guild_id=guild_id)
             await ctx.send(f"Deposited {amount} into your bank account.")
         else:
             await ctx.send("User profile not found.")
@@ -92,13 +101,14 @@ class Bank(commands.Cog):
             await ctx.send(self.amt_check(amount))
             return
         user_id = str(ctx.author.id)
-        user_data = get_economy(user_id)
+        guild_id = str(ctx.guild.id) if ctx.guild else None
+        user_data = get_economy(user_id, guild_id)
         if user_data:
             amount_int = int(amount)
-            bank_balance = user_data.get("bank_balance", 0)
+            bank_balance = user_data.get("bank_balance", user_data.get("bank", 0))
             if bank_balance >= amount_int:
                 # Use unified client helper to update balances atomically
-                update_balance(user_id, wallet_delta=amount_int, bank_delta=-amount_int)
+                update_balance(user_id, wallet_delta=amount_int, bank_delta=-amount_int, guild_id=guild_id)
                 await ctx.send(f"Withdrew {amount} from your bank account.")
             else:
                 await ctx.send("Insufficient funds in your bank account.")
@@ -106,11 +116,12 @@ class Bank(commands.Cog):
     @bank_group.command()
     async def list_service(self,ctx, title, description, price):
         user_id = str(ctx.author.id)
-        user_data = get_economy(user_id)
+        guild_id = str(ctx.guild.id) if ctx.guild else None
+        user_data = get_economy(user_id, guild_id)
         price_int = int(price)
         if user_data and user_data.get("wallet_balance", 0) >= price_int:
             # Deduct from wallet balance when listing a service
-            update_balance(user_id, wallet_delta=-price_int)
+            update_balance(user_id, wallet_delta=-price_int, guild_id=guild_id)
 
             # Store the service listing logic here
 

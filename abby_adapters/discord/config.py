@@ -111,6 +111,7 @@ class APIKeys:
     """External API Keys and Credentials"""
     # Core bot
     discord_token: str = field(default_factory=lambda: os.getenv("ABBY_TOKEN", ""))
+    developer_token: str = field(default_factory=lambda: os.getenv("DEVELOPER_TOKEN", ""))
     
     # AI Services
     openai_key: str = field(default_factory=lambda: os.getenv("OPENAI_API_KEY", ""))
@@ -162,7 +163,7 @@ class LLMConfig:
     ollama_model: str = field(default_factory=lambda: os.getenv("OLLAMA_MODEL", "llama3"))
     
     # OpenAI
-    openai_model: str = field(default_factory=lambda: os.getenv("OPENAI_MODEL", "gpt-3.5-turbo"))
+    openai_model: str = field(default_factory=lambda: os.getenv("OPENAI_MODEL", "gpt-4o-mini"))
     
     # General
     timeout: float = field(default_factory=lambda: getenv_float("LLM_TIMEOUT", "30"))

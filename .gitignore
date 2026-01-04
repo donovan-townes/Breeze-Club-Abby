@@ -9,4 +9,5 @@ memory_docs/
 shared/
 deploy.ps1
 tdos_memory/
-
+tdos_memory_package/
+external/

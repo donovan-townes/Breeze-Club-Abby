@@ -63,9 +63,7 @@ class ImageGenerate(commands.Cog):
         guild_id = str(interaction.guild.id) if interaction.guild else None
         user_roles = [str(role.id) for role in getattr(interaction.user, "roles", [])]
         try:
-            # Get user level (guild-specific once supported)
-            user_level = get_level(user_id)
-            # TODO: Once get_level supports guild_id parameter, use: get_level(user_id, guild_id)
+            user_level = get_level(user_id, guild_id)
         except Exception as e:
             self.logger.warning(f"Failed to get user level for {user_id}: {e}")
             user_level = 1

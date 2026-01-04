@@ -150,12 +150,13 @@ def get_level_from_xp(xp):
     return level
 
 
-def get_level(user_id):
-    """Get user's current level"""
+def get_level(user_id, guild_id=None):
+    """Get user's current level, optionally guild-scoped."""
     user_id = str(user_id)
-    user_data = get_xp(user_id)
+    guild_id = str(guild_id) if guild_id else None
+    user_data = get_xp(user_id, guild_id)
     if not user_data:
-        initialize_xp(user_id)
+        initialize_xp(user_id, guild_id)
         return 1
     return user_data.get("level", 1)
 

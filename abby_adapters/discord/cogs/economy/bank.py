@@ -8,8 +8,9 @@ from discord import app_commands
 from discord.ext import commands
 from typing import Optional
 
-from abby_core.database.mongodb import get_economy, update_balance
+from abby_core.database.mongodb import get_economy, update_balance, log_transaction, get_transaction_history
 from abby_core.observability.logging import logging
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -28,9 +29,9 @@ def _balance_embed(user: discord.abc.User, wallet: int, bank: int) -> discord.Em
     total = wallet + bank
     embed = discord.Embed(title="Bank Balance", color=discord.Color.blue())
     embed.set_author(name=user.display_name, icon_url=getattr(user.display_avatar, "url", None))
-    embed.add_field(name="Wallet", value=f"{wallet:,}", inline=True)
-    embed.add_field(name="Bank", value=f"{bank:,}", inline=True)
-    embed.add_field(name="Total", value=f"{total:,}", inline=True)
+    embed.add_field(name="Wallet", value=_format_currency(wallet), inline=True)
+    embed.add_field(name="Bank", value=_format_currency(bank), inline=True)
+    embed.add_field(name="Total", value=_format_currency(total), inline=True)
     embed.add_field(name="Composition", value=_progress_bar(bank, total), inline=False)
     return embed
 
@@ -49,6 +50,12 @@ def _validate_non_negative(value: int | None) -> str | None:
     if value < 0:
         return "Enter a non-negative value."
     return None
+
+
+def _format_currency(amount: int) -> str:
+    """Format coins with dollar conversion (100 Breeze Coins = 1 Leaf Dollar)."""
+    dollars = amount / 100
+    return f"{amount:,} BC (${dollars:.2f})"
 
 
 class BankCommands(commands.GroupCog, name="bank"):
@@ -93,7 +100,9 @@ class BankCommands(commands.GroupCog, name="bank"):
             return
 
         update_balance(user_id, wallet_delta=-amount, bank_delta=amount, guild_id=guild_id)
-        embed = _balance_embed(interaction.user, wallet - amount, econ.get("bank_balance", econ.get("bank", 0)) + amount)
+        new_bank = econ.get("bank_balance", econ.get("bank", 0)) + amount
+        log_transaction(user_id, guild_id, "deposit", amount, new_bank, f"Deposited {amount} BC")
+        embed = _balance_embed(interaction.user, wallet - amount, new_bank)
         await interaction.response.send_message("Deposit successful.", embed=embed, ephemeral=True)
 
     @app_commands.command(name="withdraw", description="Move coins from bank into wallet")
@@ -117,15 +126,43 @@ class BankCommands(commands.GroupCog, name="bank"):
             return
 
         update_balance(user_id, wallet_delta=amount, bank_delta=-amount, guild_id=guild_id)
-        embed = _balance_embed(interaction.user, econ.get("wallet_balance", econ.get("wallet", 0)) + amount, bank_balance - amount)
+        new_wallet = econ.get("wallet_balance", econ.get("wallet", 0)) + amount
+        log_transaction(user_id, guild_id, "withdraw", amount, bank_balance - amount, f"Withdrew {amount} BC")
+        embed = _balance_embed(interaction.user, new_wallet, bank_balance - amount)
         await interaction.response.send_message("Withdrawal successful.", embed=embed, ephemeral=True)
 
-    @app_commands.command(name="history", description="View recent bank transactions (coming soon)")
-    async def history(self, interaction: discord.Interaction):
-        await interaction.response.send_message(
-            "Transaction history will be available in the next update.",
-            ephemeral=True,
-        )
+    @app_commands.command(name="history", description="View recent bank transactions")
+    @app_commands.describe(limit="Number of recent transactions to show (max 25)")
+    async def history(self, interaction: discord.Interaction, limit: int = 10):
+        if limit < 1 or limit > 25:
+            limit = 10
+        
+        guild_id = str(interaction.guild_id) if interaction.guild_id else None
+        user_id = str(interaction.user.id)
+        
+        transactions = get_transaction_history(user_id, guild_id, limit)
+        if not transactions:
+            await interaction.response.send_message("No transaction history found.", ephemeral=True)
+            return
+        
+        embed = discord.Embed(title="Transaction History", color=discord.Color.gold())
+        embed.set_author(name=interaction.user.display_name, icon_url=getattr(interaction.user.display_avatar, "url", None))
+        
+        history_text = ""
+        for txn in transactions:
+            txn_type = txn.get("type", "unknown")
+            amount = txn.get("amount", 0)
+            desc = txn.get("description", "")
+            timestamp = txn.get("timestamp")
+            time_str = timestamp.strftime("%Y-%m-%d %H:%M") if timestamp else "unknown"
+            
+            emoji = "💰" if txn_type == "deposit" else "💸" if txn_type == "withdraw" else "🔄"
+            history_text += f"{emoji} **{txn_type.title()}** - {_format_currency(amount)}\n"
+            history_text += f"   _{desc}_ • {time_str}\n\n"
+        
+        embed.description = history_text or "No transactions."
+        embed.set_footer(text=f"Showing last {len(transactions)} transaction(s)")
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @app_commands.command(name="init", description="Admin: create or reset a bank profile")
     @app_commands.describe(
@@ -168,6 +205,7 @@ class BankCommands(commands.GroupCog, name="bank"):
         bank_delta = bank - current_bank
 
         update_balance(user_id, wallet_delta=wallet_delta, bank_delta=bank_delta, guild_id=guild_id)
+        log_transaction(user_id, guild_id, "init", wallet + bank, bank, f"Profile initialized (wallet={wallet}, bank={bank})")
 
         embed = _balance_embed(target, wallet, bank)
         await interaction.response.send_message(

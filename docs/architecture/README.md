@@ -118,6 +118,12 @@ Historical architectural audits and redesign documentation.
 
 ## 🎯 Reading Order by Role
 
+### For Vision & Planning
+
+1. **[Abby Role & Modes](ABBY_ROLE_AND_MODES.md)** — What Abby is (portal), operating modes, guardrails
+2. **[Roadmap](ROADMAP.md)** — Phase sequencing aligned to architecture and modes
+3. **[Architecture Overview](ARCHITECTURE.md)** — Design principles
+
 ### For New Developers
 
 1. **[Architecture Overview](ARCHITECTURE.md)** — Understand the big picture

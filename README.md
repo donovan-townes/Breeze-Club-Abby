@@ -161,6 +161,8 @@ See [docs/getting-started/](docs/getting-started/) for detailed setup guides.
 ### Architecture
 
 - **[Architecture Overview](docs/architecture/ARCHITECTURE.md)** — Design principles and patterns
+- **[Abby Role & Modes](docs/architecture/ABBY_ROLE_AND_MODES.md)** — Portal positioning, operating modes, guardrails
+- **[Roadmap](docs/architecture/ROADMAP.md)** — Phase sequencing aligned to architecture
 - **[Database Schema](docs/architecture/database-schema.md)** — MongoDB collections and indexes
 - **[Storage System](docs/architecture/STORAGE_SYSTEM.md)** — File management and quotas
 
