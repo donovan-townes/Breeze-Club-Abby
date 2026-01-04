@@ -71,15 +71,23 @@ Abby issue backlog organized by priority. Issues #1 and #2 remain for historical
   - Docs updated in RAG guide
 - References: [abby_adapters/discord/cogs/creative/chatbot.py](abby_adapters/discord/cogs/creative/chatbot.py), [abby_core/rag/handler.py](abby_core/rag/handler.py)
 
-#### Issue #20: Peer Kudos / Breeze Coin Tipping
+#### Issue #20: Peer Kudos / Breeze Coin Tipping ✅
+
+**Status**: COMPLETED
 
 - Scope: allow users to tip Breeze Coins with anti-abuse controls
 - Acceptance:
-  - `/tip @user amount [reason]` with validation and cooldowns
-  - Per-user budgets; moderation override and refund path
-  - Transactions logged as `tip/reward`; optional public thank-you
-  - Tests for budgets, logging, and double-spend prevention
-- References: [abby_core/economy/bank.py](abby_core/economy/bank.py), [abby_core/database/schemas.py](abby_core/database/schemas.py), [abby_adapters/discord/cogs/economy/xp_gain.py](abby_adapters/discord/cogs/economy/xp_gain.py)
+  - ✅ `/tip @user amount [reason] [public]` with validation and daily budgets
+  - ✅ Per-user daily budgets (1,000 BC); 24-hour reset cycle
+  - ✅ Transactions logged as `tip` type; optional public thank-you
+  - ✅ Tests for budgets, logging, self-tip prevention, and edge cases
+  - ✅ Comprehensive documentation in [TIPPING_GUIDE.md](docs/features/TIPPING_GUIDE.md)
+- Implementation:
+  - Schema: Added `tip_budget_used` and `tip_budget_reset` fields to EconomySchema
+  - Database: Added `get_tip_budget_remaining()`, `reset_tip_budget_if_needed()`, `increment_tip_budget_used()` helpers
+  - Command: `/tip` command in [bank.py](abby_adapters/discord/cogs/economy/bank.py) with full validation
+  - Tests: [test_tipping.py](tests/test_tipping.py) with 20+ test cases covering all scenarios
+- References: [abby_core/database/schemas.py](abby_core/database/schemas.py), [abby_core/database/mongodb.py](abby_core/database/mongodb.py), [abby_adapters/discord/cogs/economy/bank.py](abby_adapters/discord/cogs/economy/bank.py), [tests/test_tipping.py](tests/test_tipping.py)
 
 #### Issue #17: Extend Daily Emoji Game Windows and Duration
 

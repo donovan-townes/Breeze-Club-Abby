@@ -8,7 +8,15 @@ from discord import app_commands
 from discord.ext import commands
 from typing import Optional
 
-from abby_core.database.mongodb import get_economy, update_balance, log_transaction, get_transaction_history
+from abby_core.database.mongodb import (
+    get_economy, 
+    update_balance, 
+    log_transaction, 
+    get_transaction_history,
+    get_tip_budget_remaining,
+    reset_tip_budget_if_needed,
+    increment_tip_budget_used
+)
 from abby_core.observability.logging import logging
 from datetime import datetime
 
@@ -279,6 +287,111 @@ class BankCommands(commands.GroupCog, name="bank"):
         embed.set_footer(text="Transfer logged in your transaction history")
         
         await interaction.response.send_message(embed=embed, ephemeral=False)
+
+    @app_commands.command(name="tip", description="Tip another user with Breeze Coins (daily budget applies)")
+    @app_commands.describe(
+        recipient="The user to tip",
+        amount="Amount of Breeze Coins to tip",
+        reason="Optional reason for the tip (shown publicly)",
+        public="Whether to show a public thank-you message (default: True)"
+    )
+    async def tip(
+        self, 
+        interaction: discord.Interaction, 
+        recipient: discord.Member, 
+        amount: int,
+        reason: Optional[str] = None,
+        public: bool = True
+    ):
+        """Tip another user with Breeze Coins from your wallet (daily budget applies)."""
+        # Validation: positive amount
+        if amount <= 0:
+            await interaction.response.send_message("Tip amount must be positive.", ephemeral=True)
+            return
+        
+        # Validation: recipient cannot be a bot
+        if recipient.bot:
+            await interaction.response.send_message("You cannot tip bots.", ephemeral=True)
+            return
+        
+        # Validation: cannot tip yourself
+        if recipient.id == interaction.user.id:
+            await interaction.response.send_message("You cannot tip yourself.", ephemeral=True)
+            return
+        
+        guild_id = str(interaction.guild_id) if interaction.guild_id else None
+        sender_id = str(interaction.user.id)
+        recipient_id = str(recipient.id)
+        
+        # Check and reset tipping budget if needed
+        reset_tip_budget_if_needed(sender_id, guild_id)
+        
+        # Get sender's remaining tip budget (default: 1000 BC per day)
+        DAILY_TIP_LIMIT = 1000
+        remaining_budget = get_tip_budget_remaining(sender_id, guild_id, DAILY_TIP_LIMIT)
+        
+        if amount > remaining_budget:
+            await interaction.response.send_message(
+                f"⚠️ Insufficient tipping budget. You have {_format_currency(remaining_budget)} remaining today.\n"
+                f"Daily limit: {_format_currency(DAILY_TIP_LIMIT)} (resets every 24 hours)",
+                ephemeral=True
+            )
+            return
+        
+        # Get sender profile
+        sender_econ = get_economy(sender_id, guild_id)
+        if not sender_econ:
+            await interaction.response.send_message("Your profile not found. Initialize with `/bank init` first.", ephemeral=True)
+            return
+        
+        sender_wallet = sender_econ.get("wallet_balance", sender_econ.get("wallet", 0))
+        if sender_wallet < amount:
+            await interaction.response.send_message(
+                f"Insufficient funds. You have {_format_currency(sender_wallet)} in your wallet.",
+                ephemeral=True
+            )
+            return
+        
+        # Get or create recipient profile (upsert with 0 balance)
+        recipient_econ = get_economy(recipient_id, guild_id)
+        if not recipient_econ:
+            # Create profile with 0 balance via upsert
+            update_balance(recipient_id, wallet_delta=0, bank_delta=0, guild_id=guild_id)
+            recipient_econ = get_economy(recipient_id, guild_id)
+        
+        recipient_wallet = recipient_econ.get("wallet_balance", recipient_econ.get("wallet", 0))
+        
+        # Execute transfer atomically
+        update_balance(sender_id, wallet_delta=-amount, guild_id=guild_id)
+        update_balance(recipient_id, wallet_delta=amount, guild_id=guild_id)
+        
+        # Increment sender's tip budget usage
+        increment_tip_budget_used(sender_id, guild_id, amount)
+        
+        # Log transactions as 'tip' type for both parties
+        new_sender_wallet = sender_wallet - amount
+        new_recipient_wallet = recipient_wallet + amount
+        tip_note = f"Tipped {amount} BC to {recipient.display_name}"
+        if reason:
+            tip_note += f": {reason}"
+        log_transaction(sender_id, guild_id, "tip", amount, new_sender_wallet, tip_note)
+        log_transaction(recipient_id, guild_id, "tip", amount, new_recipient_wallet, f"Received {amount} BC tip from {interaction.user.display_name}")
+        
+        # Calculate remaining budget after this tip
+        new_remaining_budget = remaining_budget - amount
+        
+        # Send confirmation
+        embed = discord.Embed(title="💸 Tip Sent!", color=discord.Color.gold())
+        embed.add_field(name="From", value=interaction.user.mention, inline=True)
+        embed.add_field(name="To", value=recipient.mention, inline=True)
+        embed.add_field(name="Amount", value=_format_currency(amount), inline=False)
+        if reason:
+            embed.add_field(name="Reason", value=reason, inline=False)
+        embed.add_field(name="Your New Balance", value=_format_currency(new_sender_wallet), inline=True)
+        embed.add_field(name="Tip Budget Remaining", value=_format_currency(new_remaining_budget), inline=True)
+        embed.set_footer(text="Thank you for spreading kindness! ✨")
+        
+        await interaction.response.send_message(embed=embed, ephemeral=not public)
 
 
 async def setup(bot: commands.Bot):

@@ -390,6 +390,130 @@ def get_transaction_history(user_id, guild_id=None, limit=10):
         return []
 
 
+def get_tip_budget_remaining(user_id, guild_id=None, daily_limit=1000):
+    """
+    Get the remaining daily tipping budget for a user.
+    
+    Args:
+        user_id: Discord user ID
+        guild_id: Discord guild ID (server)
+        daily_limit: Maximum coins that can be tipped per day (default: 1000)
+    
+    Returns:
+        int: Remaining budget amount (0 if budget exhausted)
+    """
+    from datetime import datetime, timedelta
+    economy = get_economy(user_id, guild_id)
+    
+    if not economy:
+        return daily_limit  # New user has full budget
+    
+    tip_budget_reset = economy.get('tip_budget_reset')
+    tip_budget_used = economy.get('tip_budget_used', 0)
+    
+    # Check if budget needs reset (24 hours elapsed)
+    now = datetime.utcnow()
+    if tip_budget_reset is None or (now - tip_budget_reset) >= timedelta(hours=24):
+        return daily_limit  # Budget has reset
+    
+    # Calculate remaining budget
+    remaining = daily_limit - tip_budget_used
+    return max(0, remaining)
+
+
+def reset_tip_budget_if_needed(user_id, guild_id=None):
+    """
+    Reset user's tipping budget if 24 hours have elapsed.
+    
+    Args:
+        user_id: Discord user ID
+        guild_id: Discord guild ID (server)
+    
+    Returns:
+        bool: True if budget was reset, False otherwise
+    """
+    from datetime import datetime, timedelta
+    client = connect_to_mongodb()
+    try:
+        db = client[_get_db_name()]
+        collection = db["economy"]
+        
+        economy = get_economy(user_id, guild_id)
+        if not economy:
+            return False
+        
+        tip_budget_reset = economy.get('tip_budget_reset')
+        now = datetime.utcnow()
+        
+        # Check if 24 hours have elapsed
+        if tip_budget_reset is None or (now - tip_budget_reset) >= timedelta(hours=24):
+            query = {"user_id": str(user_id)}
+            if guild_id is not None:
+                query["guild_id"] = str(guild_id)
+            
+            collection.update_one(
+                query,
+                {
+                    "$set": {
+                        "tip_budget_used": 0,
+                        "tip_budget_reset": now
+                    }
+                },
+                upsert=True
+            )
+            logger.debug(f"[💸] Reset tip budget for {user_id} (guild {guild_id})")
+            return True
+        
+        return False
+    except Exception as e:
+        logger.error(f"[❌] Failed to reset tip budget for {user_id}: {e}")
+        return False
+
+
+def increment_tip_budget_used(user_id, guild_id, amount):
+    """
+    Increment the user's daily tipping budget usage.
+    
+    Args:
+        user_id: Discord user ID
+        guild_id: Discord guild ID (server)
+        amount: Amount to add to budget usage
+    
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    from datetime import datetime
+    client = connect_to_mongodb()
+    try:
+        db = client[_get_db_name()]
+        collection = db["economy"]
+        
+        query = {"user_id": str(user_id)}
+        if guild_id is not None:
+            query["guild_id"] = str(guild_id)
+        
+        # Initialize budget tracking on first use
+        update_doc = {
+            "$inc": {"tip_budget_used": amount},
+            "$setOnInsert": {
+                "user_id": str(user_id),
+                "guild_id": str(guild_id) if guild_id is not None else None,
+                "tip_budget_reset": datetime.utcnow(),
+                "wallet_balance": 0,
+                "bank_balance": 0,
+                "transactions": [],
+                "last_daily": None,
+            }
+        }
+        
+        collection.update_one(query, update_doc, upsert=True)
+        logger.debug(f"[💸] Incremented tip budget for {user_id} (guild {guild_id}): +{amount}")
+        return True
+    except Exception as e:
+        logger.error(f"[❌] Failed to increment tip budget for {user_id}: {e}")
+        return False
+
+
 # ==================== RAG Document Management ====================
 def get_rag_documents_collection():
     """Get the unified RAG documents collection from Abby_Database."""

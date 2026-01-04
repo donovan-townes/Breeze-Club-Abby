@@ -231,13 +231,16 @@ Abby uses **slash commands** for most interactions. Type `/` in Discord to see a
 
 ### 💰 Economy Commands
 
-| Command                | Description                          |
-| ---------------------- | ------------------------------------ |
-| `/balance [user]`      | Check your or another user's balance |
-| `/daily`               | Claim daily XP bonus                 |
-| `/leaderboard`         | View top users by XP/level           |
-| `/pay <user> <amount>` | Transfer currency to another user    |
-| `/shop`                | Browse available items and services  |
+| Command                | Description                              |
+| ---------------------- | ---------------------------------------- |
+| `/balance [user]`      | Check your or another user's balance     |
+| `/daily`               | Claim daily XP bonus                     |
+| `/leaderboard`         | View top users by XP/level               |
+| `/pay <user> <amount>` | Transfer currency to another user        |
+| `/tip <user> <amount>` | Tip another user (1,000 BC daily budget) |
+| `/shop`                | Browse available items and services      |
+
+> **New:** `/tip` command allows peer recognition with daily budgets! See [Tipping Guide](docs/features/TIPPING_GUIDE.md).
 
 ### 🎥 Twitch Integration
 

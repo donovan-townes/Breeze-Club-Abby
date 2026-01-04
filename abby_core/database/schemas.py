@@ -97,6 +97,8 @@ class EconomySchema(TypedDict):
     wallet_balance: int  # Wallet balance
     bank_balance: int  # Bank balance
     last_daily: Optional[datetime]  # Last daily bonus claim
+    tip_budget_used: int  # Amount of daily tipping budget used
+    tip_budget_reset: Optional[datetime]  # Last time tipping budget was reset
     transactions: List[TransactionSchema]  # Transaction history
 
 

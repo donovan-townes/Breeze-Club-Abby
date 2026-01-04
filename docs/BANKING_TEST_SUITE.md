@@ -3,6 +3,7 @@
 ## Overview
 
 Comprehensive test coverage for Phase 2 banking operations (Issues #3-#6):
+
 - **Issue #3**: Slash commands (balance, deposit, withdraw, history, init, pay)
 - **Issue #4**: Interest accrual system
 - **Issue #5**: Wallet-to-wallet transfers (pay command)
@@ -11,9 +12,11 @@ Comprehensive test coverage for Phase 2 banking operations (Issues #3-#6):
 ## Test Files
 
 ### 1. `test_banking_integration.py` (14 test classes)
+
 Core banking operations with guild scoping and transaction logging.
 
 **Classes:**
+
 - `TestDepositWithdraw`: Deposit/withdraw fund movements
 - `TestTransfers`: Wallet-to-wallet transfer operations
 - `TestInterest`: Interest accrual calculations and thresholds
@@ -32,9 +35,11 @@ Core banking operations with guild scoping and transaction logging.
 **Coverage:** Deposit/withdraw operations, transfer logic, interest calculations, guild scoping, transaction logging
 
 ### 2. `test_banking_edge_cases.py` (14 test classes)
+
 Edge cases and cog-layer validation logic.
 
 **Classes:**
+
 - `TestSelfTransferValidation`: Validate sender != recipient
 - `TestInsufficientFundsValidation`: Validate wallet/bank balance sufficiency
 - `TestTransferSelfPayValidation`: Additional self-pay checks
@@ -51,9 +56,11 @@ Edge cases and cog-layer validation logic.
 **Coverage:** Boundary conditions, validation logic, error handling, concurrency
 
 ### 3. `test_banking_history.py` (11 test classes)
+
 Transaction history retrieval and formatting.
 
 **Classes:**
+
 - `TestTransactionHistoryRetrieval`: History list retrieval and filtering
 - `TestTransactionHistoryOrdering`: Most recent transactions first
 - `TestTransactionTypes`: All transaction types (deposit, withdraw, transfer, interest, init)
@@ -66,9 +73,11 @@ Transaction history retrieval and formatting.
 **Coverage:** Transaction history, formatting, multi-guild isolation
 
 ### 4. `test_economy_scoping.py` (5 tests - existing)
+
 Phase 1 scoping requirements.
 
 **Tests:**
+
 - `test_update_balance_uses_canonical_fields`: wallet_balance/bank_balance
 - `test_get_economy_scopes_guild`: Guild filtering in get_economy
 - `test_list_economies_filters_guild`: Guild-scoped iterator
@@ -78,6 +87,7 @@ Phase 1 scoping requirements.
 ## Test Coverage by Operation
 
 ### Deposit
+
 - `TestDepositWithdraw.test_deposit_moves_funds_wallet_to_bank`
 - `TestCompleteDepositFlow.test_deposit_flow_validates_amount`
 - `TestCompleteDepositFlow.test_deposit_logs_transaction`
@@ -92,6 +102,7 @@ Phase 1 scoping requirements.
 - `TestOperationAtomicity.test_deposit_single_operation`
 
 ### Withdraw
+
 - `TestDepositWithdraw.test_withdraw_moves_funds_bank_to_wallet`
 - `TestCompleteWithdrawFlow.test_withdraw_validates_bank_balance`
 - `TestCompleteWithdrawFlow.test_withdraw_logs_transaction`
@@ -105,6 +116,7 @@ Phase 1 scoping requirements.
 - `TestOperationAtomicity.test_withdraw_single_operation`
 
 ### Transfer (Pay)
+
 - `TestTransfers.test_transfer_updates_both_parties`
 - `TestTransfers.test_transfer_logs_transactions_both_sides`
 - `TestCompleteTransferFlow.test_transfer_flow_updates_both_parties`
@@ -125,6 +137,7 @@ Phase 1 scoping requirements.
 - `TestHistoryMultipleGuilds.test_history_does_not_mix_guilds`
 
 ### Interest
+
 - `TestInterest.test_interest_applied_only_above_minimum`
 - `TestInterest.test_interest_calculated_correctly`
 - `TestInterest.test_interest_logged_as_transaction`
@@ -138,6 +151,7 @@ Phase 1 scoping requirements.
 - `TestTransactionAmounts.test_interest_amount_recorded`
 
 ### Transaction History
+
 - `TestTransactionHistory.test_get_transaction_history_filters_by_user_and_guild`
 - `TestTransactionHistory.test_transaction_history_respects_limit`
 - `TestTransactionHistoryRetrieval.test_get_history_returns_list`
@@ -150,17 +164,20 @@ Phase 1 scoping requirements.
 - `TestTransactionHistoryEdgeCases.test_history_limit_respects_ceiling`
 
 ### Guild Scoping
+
 - `TestGuildScoping.test_balance_operations_scoped_to_guild`
 - `TestGuildScoping.test_transaction_logs_include_guild`
 - `TestMultiGuildIsolation.test_user_has_separate_balance_per_guild`
 - `TestHistoryMultipleGuilds.test_history_does_not_mix_guilds`
 
 ### Canonical Fields
+
 - `TestCanonicalFields.test_update_uses_wallet_balance_not_wallet`
 - `TestCanonicalFields.test_update_uses_bank_balance_not_bank`
 - `test_economy_scoping.py::test_update_balance_uses_canonical_fields`
 
 ### Currency Formatting
+
 - `TestCurrencyFormatting.test_format_currency_100_bc_equals_1_dollar`
 - `TestCurrencyFormatting.test_format_currency_1_bc_equals_penny`
 - `TestCurrencyFormatting.test_format_currency_zero`
@@ -176,6 +193,7 @@ Phase 1 scoping requirements.
 ## Test Data & Fixtures
 
 All test files use:
+
 - `FakeCollection`: Mocks MongoDB collection with find, update, insert, count operations
 - `FakeDB`: Mocks MongoDB database with economy and transactions collections
 - `FakeClient`: Root client object for dependency injection
@@ -184,12 +202,14 @@ All test files use:
 ## Running Tests
 
 ### All tests
+
 ```bash
 cd c:\Abby_Discord_Latest
 python -m pytest tests/test_banking*.py -v
 ```
 
 ### Specific file
+
 ```bash
 python -m pytest tests/test_banking_integration.py -v
 python -m pytest tests/test_banking_edge_cases.py -v
@@ -197,11 +217,13 @@ python -m pytest tests/test_banking_history.py -v
 ```
 
 ### Specific test class
+
 ```bash
 python -m pytest tests/test_banking_integration.py::TestDepositWithdraw -v
 ```
 
 ### With coverage
+
 ```bash
 python -m pytest tests/test_banking*.py --cov=abby_core.economy --cov=abby_core.database --cov-report=html
 ```
@@ -210,7 +232,7 @@ python -m pytest tests/test_banking*.py --cov=abby_core.economy --cov=abby_core.
 
 - **Total Test Classes**: 39 (14 + 14 + 11 across new files)
 - **Total Test Methods**: 100+
-- **Files Tested**: 
+- **Files Tested**:
   - `abby_core/database/mongodb.py` (get_economy, update_balance, log_transaction, get_transaction_history)
   - `abby_core/economy/bank.py` (interest accrual, INTEREST_RATE_DAILY, INTEREST_MIN_BALANCE)
   - `abby_adapters/discord/cogs/economy/bank.py` (all slash commands via cog-layer validation)
