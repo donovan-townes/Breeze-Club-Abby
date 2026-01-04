@@ -27,7 +27,7 @@ Abby issue backlog organized by priority. Issues #1 and #2 remain for historical
   - `bank_update()` iterates across guilds and users efficiently (pagination or batching if needed)
   - Interest/rewards applied per guild
   - Tests cover the scheduled task behavior
-- Status: ✅ scan implemented (tenant-aware iterator via `list_economies()`); interest logic hook pending; coverage added and passing in tests/test_economy_scoping.py
+- Status: ✅ complete; tenant-aware iterator via `list_economies()`, interest applied every 10min (0.1% daily prorated), logged per transaction
 - References: [abby_core/economy/bank.py](abby_core/economy/bank.py)
 
 #### Issue #10: Resolve Image Generation Guild ID Parameter
@@ -58,7 +58,8 @@ Abby issue backlog organized by priority. Issues #1 and #2 remain for historical
   - Slash commands for balance/deposit/withdraw/history
   - Embed UI with progress bars, guild-scoped economy
   - Robust errors and tests for all operations
-- References: [abby_core/economy/bank.py](abby_core/economy/bank.py), [abby_adapters/discord/cogs/economy](abby_adapters/discord/cogs/economy)
+- Status: ✅ complete; slash commands live with currency formatting (100 BC = $1.00), transaction logging, and history retrieval
+- References: [abby_adapters/discord/cogs/economy/bank.py](abby_adapters/discord/cogs/economy/bank.py)
 
 #### Issue #7: Complete RAG Integration for Chatbot
 
@@ -99,7 +100,8 @@ Abby issue backlog organized by priority. Issues #1 and #2 remain for historical
 - Interest accrues on deposits (configurable cadence and rate)
 - Background task applies interest; transaction log records type/timestamp/amount
 - Guild-specific rates; command to view history
-- References: [abby_core/economy/bank.py](abby_core/economy/bank.py), [abby_adapters/discord/cogs/economy/xp_gain.py](abby_adapters/discord/cogs/economy/xp_gain.py)
+- Status: ✅ interest implemented; 0.1% daily (prorated per 10min), min 100 BC balance, logged as transactions
+- References: [abby_core/economy/bank.py](abby_core/economy/bank.py), [abby_adapters/discord/cogs/economy/bank.py](abby_adapters/discord/cogs/economy/bank.py)
 
 #### Issue #5: Implement Wallet-to-Wallet Transactions
 

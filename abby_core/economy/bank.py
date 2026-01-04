@@ -8,12 +8,16 @@ import datetime
 
 # Import unified MongoDB client
 sys.path.insert(0, str(Path(__file__).parent.parent / 'abby-core'))
-from abby_core.database.mongodb import get_economy, update_balance, list_economies
+from abby_core.database.mongodb import get_economy, update_balance, list_economies, log_transaction
 from abby_core.observability.logging import setup_logging, logging
 
 load_dotenv()
 setup_logging()
 logger = logging.getLogger(__name__)
+
+# Interest configuration
+INTEREST_RATE_DAILY = float(os.getenv("BANK_INTEREST_RATE_DAILY", "0.001"))  # 0.1% daily default
+INTEREST_MIN_BALANCE = int(os.getenv("BANK_INTEREST_MIN_BALANCE", "100"))  # Min 100 BC to earn interest
 
 
 
@@ -38,12 +42,37 @@ class Bank(commands.Cog):
         """Iterate tenant-scoped economies for periodic tasks (interest/rewards hooks)."""
         try:
             processed = 0
+            interest_paid = 0
             for econ in list_economies():
                 guild_id = econ.get("guild_id")
                 user_id = econ.get("user_id")
-                # Placeholder for future interest/reward logic; no mutation yet
+                bank_balance = econ.get("bank_balance", 0)
+                
+                # Apply daily interest if balance meets minimum threshold
+                if bank_balance >= INTEREST_MIN_BALANCE:
+                    # Calculate interest (prorated for 10-minute interval: daily_rate / 144)
+                    interval_rate = INTEREST_RATE_DAILY / 144
+                    interest = int(bank_balance * interval_rate)
+                    
+                    if interest > 0:
+                        update_balance(user_id, bank_delta=interest, guild_id=guild_id)
+                        new_balance = bank_balance + interest
+                        log_transaction(
+                            user_id, 
+                            guild_id, 
+                            "interest", 
+                            interest, 
+                            new_balance,
+                            f"Interest earned ({interval_rate*100:.4f}%)"
+                        )
+                        interest_paid += interest
+                
                 processed += 1
-            logger.debug(f"[💲] bank_update scanned {processed} economy docs")
+            
+            if interest_paid > 0:
+                logger.info(f"[💲] bank_update: processed {processed} accounts, paid {interest_paid} BC interest")
+            else:
+                logger.debug(f"[💲] bank_update scanned {processed} economy docs")
         except Exception as e:
             logger.error(f"[💲] bank_update failed: {e}")
             
