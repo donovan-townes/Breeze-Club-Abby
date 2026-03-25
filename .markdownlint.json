@@ -1,0 +1,12 @@
+{
+  "extends": "default",
+  "rules": {
+    "line-length": false,
+    "no-hard-tabs": false,
+    "fenced-code-language": true,
+    "blanks-around-headings": true,
+    "blanks-around-fences": true,
+    "blanks-around-lists": true,
+    "no-emphasis-as-heading": true
+  }
+}

@@ -1,0 +1,17 @@
+# CoreDNS configuration for TSERVER internal DNS
+# Domain: tdos.internal
+# Resolve only internal service names here; forward everything else to upstream
+
+tdos.internal:53 {
+  log
+  errors
+  file /etc/coredns/tdos.internal.db
+}
+
+.:53 {
+  health :8080
+  forward . 1.1.1.1 8.8.8.8
+  cache 30
+  log
+  errors
+}

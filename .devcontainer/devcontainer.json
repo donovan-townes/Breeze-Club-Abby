@@ -1,0 +1,83 @@
+{
+  "name": "Abby Bot Development",
+  "dockerComposeFile": "../docker/docker-compose.dev.yml",
+  "service": "abby",
+  "workspaceFolder": "/app",
+
+  // Features to add to the dev container
+  "features": {
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.11"
+    },
+    "ghcr.io/devcontainers/features/git:1": {}
+  },
+
+  // VS Code extensions to install in the container
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-python.debugpy",
+        "charliermarsh.ruff",
+        "ms-vscode.makefile-tools",
+        "eamodio.gitlens"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.linting.enabled": true,
+        "python.linting.pylintEnabled": true,
+        "python.formatting.provider": "black",
+        "[python]": {
+          "editor.defaultFormatter": "ms-python.python",
+          "editor.formatOnSave": true,
+          "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit"
+          }
+        },
+        "python.analysis.typeCheckingMode": "basic"
+      }
+    }
+  },
+
+  // Environment variables in the container
+  "remoteEnv": {
+    "DEV_MODE": "true",
+    "LOG_LEVEL": "DEBUG"
+  },
+
+  // Port forwarding
+  "forwardPorts": [27017, 5000],
+  "portsAttributes": {
+    "27017": {
+      "label": "MongoDB",
+      "onAutoForward": "notify"
+    },
+    "5000": {
+      "label": "Bot API",
+      "onAutoForward": "notify"
+    }
+  },
+
+  // Startup command - ensures dependencies are installed
+  "postCreateCommand": "pip install -q --no-cache-dir -r requirements.txt && python -m pip install --upgrade pip",
+
+  // Mounts for persistent shell history
+  "mounts": [
+    "source=${localEnv:HOME}${localEnv:USERPROFILE}/.bash_history,target=/root/.bash_history,type=bind",
+    "source=${localEnv:HOME}${localEnv:USERPROFILE}/.ssh,target=/root/.ssh,type=bind,consistency=cached"
+  ],
+
+  // Container user (root is fine for development)
+  "containerUser": "root",
+
+  // Uncomment to connect to host.docker.internal instead of localhost
+  // "remoteUser": "root",
+  // "overrideCommand": false,
+
+  // Run commands on container start
+  "initializeCommand": "echo '[devcontainer] Initializing development environment...'",
+
+  // Settings for when container is not available
+  "onCreateCommand": ""
+}

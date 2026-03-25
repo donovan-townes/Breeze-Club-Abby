@@ -1,0 +1,27 @@
+{
+  local_certs
+  admin off
+}
+
+tserver {
+  route /home* {
+    uri strip_prefix /home
+    reverse_proxy tdos-docs:3000
+  }
+
+  route /penpot* {
+    uri strip_prefix /penpot
+    reverse_proxy penpot:9001
+  }
+
+  route /registry* {
+    uri strip_prefix /registry
+    reverse_proxy registry:5000
+  }
+
+  respond "TSERVER online"
+}
+
+registry.tdos.internal {
+  reverse_proxy registry:5000
+}

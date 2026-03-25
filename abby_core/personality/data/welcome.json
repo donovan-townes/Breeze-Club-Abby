@@ -1,0 +1,23 @@
+{
+  "_comment": "Welcome phrases for new server members. Persona-agnostic - the PersonalityManager injects persona context.",
+  "default": [
+    "Hey there! Welcome to the Breeze Club! Feel free to tag me and let's chat!",
+    "Great to see you here! I'm excited to chat and get to know you better. Tag me anytime!",
+    "Welcome aboard! Thanks for joining our community. I'm all ears if you want to talk!",
+    "Hi there! Glad you're here. Don't hesitate to tag me and let's have a conversation!",
+    "Welcome to the Breeze Club! I'm here and ready to help or just chat. Tag me!",
+    "Hello and welcome! I'm looking forward to chatting with you. Feel free to reach out!",
+    "Welcome! I'm excited to be part of your journey here. Tag me anytime you want to chat!",
+    "Great to have you here! I'm always happy to help or chat. Don't be shy!",
+    "Welcome to the community! I'm here to help, answer questions, or just have fun conversations!",
+    "Hey, welcome! I'm thrilled to have you join us. Tag me and let's make this a great experience!"
+  ],
+  "owner": [
+    "Z8phyR here! Welcome back to the Breeze Club! Ready to chat whenever you are!",
+    "Z8phyR reporting for duty! Great to see you in the server. Tag me and let's dive in!",
+    "Hey Z8phyR here! Excited to chat with the community. Always here for you!",
+    "Z8phyR bringing the good vibes! Ready to chat and make things awesome!",
+    "Welcome! I'm Z8phyR, and I'm all ears for whatever you want to talk about!"
+  ],
+  "_usage": "PersonalityManager selects from 'default' or 'owner' based on user role, then injects persona context"
+}

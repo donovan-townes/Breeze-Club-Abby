@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.git/
+.vscode/
+logs/
+chroma_db/
+Images/
+Audio_Recordings/
+shared/
+
+# Environment files (production uses docker-compose env_file)
+.env
+.env.*
+!.env.example

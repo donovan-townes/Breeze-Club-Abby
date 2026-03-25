@@ -1,0 +1,114 @@
+version: "3.8"
+
+# Local Development Environment for Abby Discord Bot
+#
+# This docker-compose file creates a local development environment
+# that mirrors the production setup on TSERVER but runs on your Windows machine.
+#
+# Usage:
+#   docker compose -f docker-compose.dev.yml up
+#   docker compose -f docker-compose.dev.yml logs -f abby
+#   docker compose -f docker-compose.dev.yml down
+#
+# Or use the helper script:
+#   .\dev-compose-helper.ps1 up
+#   .\dev-compose-helper.ps1 logs -Service abby
+#   .\dev-compose-helper.ps1 down
+
+services:
+  # MongoDB for local development
+  # Data persists in ./dev-state/mongo/data between restarts
+  mongo:
+    image: mongo:7.0
+    container_name: abby-dev-mongo
+    restart: unless-stopped
+    environment:
+      TZ: UTC
+      # NO AUTHENTICATION - Same as production (network isolation)
+    volumes:
+      # Persistent data on Windows machine
+      - ./dev-state/mongo/data:/data/db
+      - ./dev-state/mongo/configdb:/data/configdb
+    ports:
+      # Expose to Windows host for debugging (localhost:27017)
+      - "27017:27017"
+    networks:
+      - abby_dev_net
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # Abby Discord Bot (local build)
+  # Built from local Dockerfile, shares network with MongoDB
+  abby:
+    build:
+      context: ../ # Path to c:\TDOS\apps\abby_bot directory
+      dockerfile: Dockerfile
+    container_name: abby-dev
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    environment:
+      # Database Configuration
+      # Note: hostname "mongo" works because of Docker networking
+      - MONGODB_URI=mongodb://mongo:27017/abby
+      - MONGODB_DB=abby
+
+      # Storage paths (inside container, mapped to dev-state directory)
+      - STORAGE_PATH=/data/storage
+      - LOG_PATH=/data/logs
+      - CHROMA_PERSIST_DIR=/data/chroma
+      - EVENT_LOG_DIR=/data/events
+
+      # Development-specific settings
+      - DEV_MODE=true
+      - LOG_LEVEL=DEBUG # Verbose logging for development
+
+      # These should come from .env.dev (see volumes section)
+      # DISCORD_TOKEN is in .env.dev (don't hardcode here)
+      # OPENAI_API_KEY is in .env.dev (don't hardcode here)
+
+    volumes:
+      # Mount entire source code for live editing (Python changes)
+      # If you edit .py files, restart container to see changes
+      - ../:/app
+
+      # Persistent data directories
+      - ./dev-state/abby/storage:/data/storage
+      - ./dev-state/abby/logs:/data/logs
+      - ./dev-state/abby/chroma:/data/chroma
+      - ./dev-state/abby/events:/data/events
+
+      # Environment file (.env.dev is git-ignored for security)
+      - ./.env.dev:/app/.env
+
+    ports:
+      # Expose any bot web ports (if applicable)
+      - "5000:5000"
+
+    networks:
+      - abby_dev_net
+
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+    healthcheck:
+      # Simple check that Python can import discord
+      test: ["CMD", "python", "-c", "import discord; print('ok')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s # Give bot time to startup
+
+# Docker network for internal communication
+# Services reach each other by service name (e.g., mongo:27017)
+networks:
+  abby_dev_net:
+    driver: bridge

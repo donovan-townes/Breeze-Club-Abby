@@ -1,0 +1,14 @@
+$TTL 300
+@   IN  SOA ns1.tdos.internal. admin.tdos.internal. (
+        2026020801 ; serial
+        3600       ; refresh
+        600        ; retry
+        1209600    ; expire
+        300 )      ; minimum
+
+    IN  NS  ns1.tdos.internal.
+ns1 IN  A   100.86.240.84
+
+tserver     IN  A   100.86.240.84
+registry    IN  A   100.86.240.84
+caddy       IN  A   100.86.240.84

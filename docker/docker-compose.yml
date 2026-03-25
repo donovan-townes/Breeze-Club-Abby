@@ -1,0 +1,118 @@
+services:
+  # ============================================================================
+  # Infrastructure Services (Foundation)
+  # ============================================================================
+
+  coredns:
+    image: coredns/coredns:1.11.1
+    container_name: coredns
+    restart: unless-stopped
+    ports:
+      - "53:53/udp"
+      - "53:53/tcp"
+    volumes:
+      - /srv/tserver/state/coredns/Corefile:/Corefile:ro
+      - /srv/tserver/state/coredns/tdos.internal.db:/etc/coredns/tdos.internal.db:ro
+    command: ["-conf", "/Corefile"]
+    networks:
+      - tserver_net
+    # Note: healthcheck removed - DNS functionality verified via nslookup testing
+    # Container uptime indicates service availability for DNS
+
+  mongo:
+    image: mongo:7.0
+    container_name: mongo
+    restart: unless-stopped
+    environment:
+      TZ: UTC
+    volumes:
+      - /srv/tserver/state/mongo/data:/data/db
+      - /srv/tserver/state/mongo/configdb:/data/configdb
+    networks:
+      - tserver_net
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  registry:
+    image: registry:2
+    container_name: registry
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      REGISTRY_STORAGE_DELETE_ENABLED: "true"
+      REGISTRY_HTTP_ADDR: "0.0.0.0:5000"
+    volumes:
+      - /srv/tserver/state/registry/data:/var/lib/registry
+    networks:
+      - tserver_net
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--tries=1",
+          "--spider",
+          "http://localhost:5000/v2/",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  caddy:
+    image: caddy:2.8.4
+    container_name: caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /srv/tserver/state/caddy/data:/data
+      - /srv/tserver/state/caddy/config:/config
+      - /srv/tserver/state/caddy/Caddyfile:/etc/caddy/Caddyfile
+    networks:
+      - tserver_net
+
+  # ============================================================================
+  # Application Services (Consumers)
+  # ============================================================================
+
+  abby:
+    image: registry.tdos.internal:5000/abby:latest
+    container_name: abby
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    env_file:
+      - /srv/tserver/compose/abby.env
+    volumes:
+      - /srv/tserver/state/abby:/data
+    networks:
+      - tserver_net
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+  docs:
+    image: node:20
+    container_name: tdos-docs
+    working_dir: /app
+    command: sh -c "npx serve -s build -l 3000"
+    volumes:
+      - /srv/tserver/state/docs:/app
+    expose:
+      - "3000"
+    restart: unless-stopped
+    networks:
+      - tserver_net
+
+networks:
+  tserver_net:
+    driver: bridge

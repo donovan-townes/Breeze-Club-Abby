@@ -1,0 +1,21 @@
+{
+  "animations": {
+    "idle": "<a:Abby_idle_1:1135368915275501568>",
+    "run": "<a:Abby_run:1135375927589748899>",
+    "jump": "<a:Abby_jump:1135372059350933534>",
+    "wave": "<a:leafwave:806058099051200534>",
+    "loading": "<a:abby_loading_dev:1461419755411083345>"
+  },
+  "unicode": {
+    "leaf": "🌿",
+    "bunny_smile": "🐰",
+    "happy": "😊",
+    "thinking": "🤔",
+    "hourglass": "⏳"
+  },
+  "metadata": {
+    "version": "2.0",
+    "description": "Emoji configuration for Abby responses. Use {emoji:category.key} in persona messages to inject dynamically.",
+    "last_updated": "2026-01-15"
+  }
+}

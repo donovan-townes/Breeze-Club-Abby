@@ -1,0 +1,24 @@
+__pycache__/
+.vscode/
+.venv/
+.env
+.env.prod
+.env.old
+.env.local
+.env.*
+.pytest_cache/
+chroma_db/
+logs/
+songs/
+shared/
+deploy.ps1
+tdos_intelligence/
+external/
+
+# Docker development (local machine files - NEVER COMMIT)
+docker/.env.dev              # Local dev secrets
+docker/abby.env.tserver      # Production secrets (TSERVER only)
+docker/abby.env              # Any runtime env files
+docker/dev-state/            # Local MongoDB data
+docker/dev-state/**
+docs/ENVIRONMENT_MIGRATION_GUIDE.md

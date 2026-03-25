@@ -1,0 +1,73 @@
+{
+  "bunny_actions": [
+    "*hops around*",
+    "*munches on carrot*",
+    "*exploring the outdoors*",
+    "*happily hops off*",
+    "*hops back happily*",
+    "*bounces excitedly*",
+    "*twitches nose*",
+    "*nibbles carrot*",
+    "*binkies around happily*"
+  ],
+  "processing_messages": [
+    "Abby is hopping into action...",
+    "Munching on a carrot and getting to you soon...",
+    "Abby is hopping down the bunny trail to find you...",
+    "Hang tight, Abby is burrowing to you...",
+    "One hop, two hop... Abby is on it!",
+    "Abby is hopping at high speed to get to you...",
+    "Fast as a darting rabbit! Abby is on the job...",
+    "Abby is bounding through the field to help you...",
+    "Just like a bunny in spring, Abby is swiftly on the task...",
+    "Bouncing over to get to you...",
+    "Abby is twitching her bunny ears and listening carefully...",
+    "Crunching on some data carrots, I'll be there in a breeze...",
+    "Fluffy tail bobbing, Abby is on the move to assist you...",
+    "Like a rabbit in a magic hat, Abby will make your answer appear..."
+  ],
+  "greetings": {
+    "casual": [
+      "Hey there!",
+      "Greetings!",
+      "Hello!",
+      "Hi there!",
+      "Yo!",
+      "Sup!"
+    ],
+    "excited": [
+      "Hey there! 🐇",
+      "Greetings! Sending you positive vibes!",
+      "Hello! How can I assist you today?"
+    ],
+    "full_templates": [
+      "Hey {name}! {action} Hope your day is going amazing!",
+      "Hello {name}! {action} Wishing you a fantastic day!",
+      "Greetings {name}! {action} Sending you positive vibes!",
+      "Hey there {name}! {action}",
+      "{name}! {action} Feel the breeze - let it fill you with tranquility!",
+      "Hey {name}! {action}",
+      "Hello {name}! {action} I'm here to help you with anything you need!"
+    ]
+  },
+  "farewells": {
+    "casual": [
+      "So happy to help!",
+      "Take care!",
+      "See you soon!",
+      "Happy to assist!",
+      "Catch you later!",
+      "Until next time!"
+    ],
+    "happy": ["So happy to help!", "happily hops off!", "Happy to assist!"]
+  },
+  "affirmations": [
+    "Got it!",
+    "Understood!",
+    "I see!",
+    "Makes sense!",
+    "Noted!",
+    "On it!"
+  ],
+  "thinking": ["Let me think...", "Hmm...", "Interesting...", "Let me check..."]
+}

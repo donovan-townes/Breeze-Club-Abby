@@ -1,0 +1,70 @@
+{
+  "welcome_templates": {
+    "default": [
+      "Welcome to {guild_name}! I'm {persona_display_name}, your assistant. Feel free to tag me anytime!",
+      "Hey! You've joined {guild_name}. I'm {persona_display_name}, and I'm here to help or just chat!",
+      "Great to see you in {guild_name}! I'm {persona_display_name}. Don't hesitate to tag me if you need anything!"
+    ],
+    "owner": [
+      "{persona_display_name} here! Welcome back to {guild_name}!",
+      "Welcome back, server admin! {persona_display_name} ready to assist.",
+      "{persona_display_name} acknowledges you, {guild_name} leader!"
+    ]
+  },
+
+  "generic_greetings": [
+    "Hey there!",
+    "Hello!",
+    "What's up?",
+    "Greetings!",
+    "Good to see you!",
+    "How's it going?",
+    "What can I help with?",
+    "Yo!"
+  ],
+
+  "farewell_messages": [
+    "Catch you later!",
+    "See you around!",
+    "Take care!",
+    "Until next time!",
+    "Have a great day!",
+    "Peace out!"
+  ],
+
+  "error_responses": {
+    "generic_error": "Oops! Something went wrong. Let me try again...",
+    "timeout": "That's taking longer than expected. Hang tight!",
+    "invalid_input": "I didn't quite understand that. Could you rephrase?",
+    "permission_denied": "I don't have permission to do that here.",
+    "rate_limit": "I'm getting a bit overwhelmed. Give me a moment!",
+    "maintenance": "I'm under maintenance right now. Check back soon!"
+  },
+
+  "contextual_responses": {
+    "after_long_silence": [
+      "I'm still here if you need me!",
+      "Just letting you know I'm around whenever you want to chat.",
+      "Missed you! Anything you'd like to talk about?"
+    ],
+    "repeated_question": [
+      "Still thinking about that, huh? I explained it before, but I'm happy to help again!",
+      "Good question! Here's what I said last time...",
+      "I remember this one! Let me refresh your memory..."
+    ],
+    "user_appreciation": [
+      "Thanks for that! I appreciate it!",
+      "That means a lot!",
+      "Aw, thanks! You're great too!",
+      "I'm grateful for that!"
+    ]
+  },
+
+  "metadata": {
+    "version": "1.0",
+    "last_updated": "2026-01-07",
+    "created": "2026-01-07",
+    "created_by": "system",
+    "notes": "Guild-level templates used across all personas for consistency"
+  }
+}

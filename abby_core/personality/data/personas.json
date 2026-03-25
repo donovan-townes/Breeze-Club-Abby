@@ -1,0 +1,62 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "last_updated": "2026-01-07",
+    "created": "2026-01-07",
+    "created_by": "system",
+    "notes": "Registry of all available personas and their file locations"
+  },
+
+  "active_personas": ["bunny", "kiki"],
+
+  "available_personas": {
+    "bunny": {
+      "file": "personas/bunny.json",
+      "display_name": "Abby (Bunny)",
+      "emoji": "🐰",
+      "description": "A cheerful, energetic bunny who loves to hop around and explore.",
+      "enabled": true
+    },
+    "kiki": {
+      "file": "personas/kiki.json",
+      "display_name": "Kiki (Spirit Guide)",
+      "emoji": "👻",
+      "description": "A mystical spirit guide who offers wisdom and deeper perspective.",
+      "enabled": true
+    },
+    "oliver": {
+      "file": "personas/oliver.json",
+      "display_name": "Oliver (Scholar)",
+      "emoji": "🎓",
+      "description": "A thoughtful, wise owl who provides sage advice.",
+      "enabled": false,
+      "status": "pending_migration"
+    },
+    "sammy": {
+      "file": "personas/sammy.json",
+      "display_name": "Sammy (Jester)",
+      "emoji": "🎭",
+      "description": "An energetic, mischievous squirrel full of excitement.",
+      "enabled": false,
+      "status": "pending_migration"
+    },
+    "felix": {
+      "file": "personas/felix.json",
+      "display_name": "Felix (Wild Card)",
+      "emoji": "🐱",
+      "description": "A charming, clever fox with a way with words.",
+      "enabled": false,
+      "status": "pending_migration"
+    },
+    "paddy": {
+      "file": "personas/paddy.json",
+      "display_name": "Paddy (Gardener)",
+      "emoji": "🌱",
+      "description": "A calm, gentle panda who promotes peace and relaxation.",
+      "enabled": false,
+      "status": "pending_migration"
+    }
+  },
+
+  "default_persona": "bunny"
+}

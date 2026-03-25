@@ -1,0 +1,17 @@
+# Development and testing dependencies
+# Install with: pip install -r requirements-dev.txt
+
+# Testing framework
+pytest>=9.0.0
+pytest-asyncio>=0.24.0
+pytest-anyio>=0.5.0
+
+# Code quality
+coloredlogs>=15.0.0
+
+# Type checking (Pylance uses bundled Pyright, but useful for CLI)
+# pyright>=1.1.350  # Optional
+
+# Documentation (if needed)
+# sphinx>=7.0.0
+# sphinx-rtd-theme>=2.0.0
