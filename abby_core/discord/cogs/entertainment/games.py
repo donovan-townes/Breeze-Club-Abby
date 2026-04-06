@@ -117,12 +117,14 @@ class EmojiGameView(View):
         self.incorrect_users = []
         self.game_over = False
         
-        # Create buttons for each emoji
-        for emoji in all_emojis:
+        # Create buttons for each emoji.
+        # Use an index prefix so custom_ids are always unique even if the caller
+        # somehow passes a list with duplicate emoji values.
+        for i, emoji in enumerate(all_emojis):
             button = Button(
                 style=discord.ButtonStyle.secondary,
                 emoji=emoji,
-                custom_id=f"emoji_{emoji}"
+                custom_id=f"emoji_{i}_{emoji}"
             )
             button.callback = self._create_callback(emoji)
             self.add_item(button)
@@ -181,10 +183,11 @@ class GamesManager(commands.Cog):
         self.bot = bot
         self.active_game = False
         
-        # Emoji choices
+        # Emoji choices — must contain no duplicates; duplicate entries produce
+        # identical custom_ids on the button row which Discord rejects (400 50035).
         self.custom_emojis = [
-            "❤️", "🌟", "💥", "🍀", "🎯", "🎨", 
-            "🎭", "🎪", "🎸", "🎺", "🎲", "🎯"
+            "❤️", "🌟", "💥", "🍀", "🎯", "🎨",
+            "🎭", "🎪", "🎸", "🎺", "🎲", "🏆"
         ]
         
         # Use centralized config for channel and guild
@@ -257,10 +260,15 @@ class GamesManager(commands.Cog):
         
         # Create view with buttons
         view = EmojiGameView(winning_emoji, selected_emojis, timeout_seconds=None)
-        
+
         # Send the embed directly to channel
-        game_message = await channel.send(embed=embed, view=view)
-        
+        try:
+            game_message = await channel.send(embed=embed, view=view)
+        except discord.HTTPException as e:
+            self.active_game = False
+            logger.error(f"[🎮] Failed to send game message, rolling back active state: {e}")
+            raise
+
         # Start the game logic with pre-created message
         await self._run_game(
             channel,
@@ -323,7 +331,13 @@ class GamesManager(commands.Cog):
             
             # Create view with buttons (no timeout - we manage duration manually)
             view = EmojiGameView(winning_emoji, selected_emojis, timeout_seconds=None)
-            game_message = await channel.send(embed=embed, view=view)
+            try:
+                game_message = await channel.send(embed=embed, view=view)
+            except discord.HTTPException as e:
+                # Roll back active state so the next scheduled tick can start a fresh game.
+                self.active_game = False
+                logger.error(f"[🎮] Failed to send game message, rolling back active state: {e}")
+                raise
         else:
             # Manual game flow: game_message, winning_emoji, and view already created
             duration_minutes = max(1, min(60, duration_minutes))
